@@ -198,6 +198,25 @@
   .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 26px; line-height: 1; margin-top: 4px; }
   .stat-unit { font-size: 11px; color: var(--fg-dim); margin-left: 4px; }
 
+  /* Resting HR input row — text input with inputmode="numeric" so the
+     Android numeric keypad opens reliably; the live readout to the right
+     confirms the typed value was registered (Bug 1 fix). */
+  .rhr-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .rhr-row input {
+    flex: 1 1 auto; min-width: 0;
+    font-family: 'DM Mono', ui-monospace, monospace;
+    font-size: 18px; letter-spacing: 0.04em;
+  }
+  .rhr-current {
+    flex: 0 0 auto;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; line-height: 1;
+    color: var(--accent);
+    min-width: 48px; text-align: right;
+  }
+
   /* Slider rows */
   .slider-row {
     display: grid; grid-template-columns: 1fr auto;
@@ -1043,8 +1062,21 @@
         </div>
 
         <div class="divider"></div>
-        <label class="label">Resting HR (BPM) <span class="small" id="rhr-baseline"></span></label>
-        <input type="number" id="in-rhr" inputmode="numeric" min="40" max="120" placeholder="56" />
+        <label class="label" for="in-rhr">Resting HR (BPM) <span class="small" id="rhr-baseline"></span></label>
+        <div class="rhr-row">
+          <input
+            type="text"
+            id="in-rhr"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="3"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            placeholder="56"
+            aria-describedby="rhr-current" />
+          <span class="rhr-current" id="rhr-current" aria-live="polite">--</span>
+        </div>
       </div>
 
       <div class="card unplanned-banner" id="unplanned-banner">
@@ -2640,6 +2672,10 @@ function renderCheckIn() {
   $('#v-mood').textContent = inp.mood;
   $('#v-stress').textContent = inp.stress;
   $('#v-sore').textContent = inp.sore;
+  // Live readout next to the RHR input — confirms the typed value
+  // registered (the input itself is text-with-inputmode-numeric so the
+  // Android numeric keypad opens reliably).
+  $('#rhr-current').textContent = inp.rhr ? inp.rhr : '--';
 
   const hasRhr = !!inp.rhr;
   if (!hasRhr) {
@@ -3380,7 +3416,11 @@ function saveCheckIn() {
     sore: +$('#in-sore').value,
     rhr: +$('#in-rhr').value,
   };
-  if (!inp.rhr) { toast('Enter resting HR first.'); return; }
+  if (!inp.rhr) { toast('Enter resting HR first.'); $('#in-rhr').focus(); return; }
+  if (inp.rhr < 30 || inp.rhr > 200) {
+    toast('RHR ' + inp.rhr + ' is outside 30-200 — check the value.');
+    $('#in-rhr').focus(); return;
+  }
 
   const r = computeStability(inp, state.profile);
   const arr = load(K.checkins, []);
@@ -3587,7 +3627,13 @@ function wire() {
   ['sleep','energy','mood','stress','sore'].forEach(id => {
     $('#in-'+id).addEventListener('input', renderCheckIn);
   });
-  $('#in-rhr').addEventListener('input', renderCheckIn);
+  // RHR input — strip any non-digits before re-rendering so paste / external
+  // keyboard / autocomplete can't introduce text that breaks the numeric coerce.
+  $('#in-rhr').addEventListener('input', (e) => {
+    const cleaned = e.target.value.replace(/\D+/g, '').slice(0, 3);
+    if (cleaned !== e.target.value) e.target.value = cleaned;
+    renderCheckIn();
+  });
 
   // save check-in
   $('#save-checkin').addEventListener('click', saveCheckIn);
