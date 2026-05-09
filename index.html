@@ -2307,13 +2307,204 @@ async function analyzePhoto() {
 
   status.style.display = 'none';
   results.style.display = '';
-  // Raw JSON dump. Replaced by editable stat cards in the next commit.
-  results.innerHTML = `
+  renderExtractedData(result.json);
+}
+
+/**
+ * Render the editable stat-card display for extracted cycling data.
+ *
+ * Each stat is shown as a small card with the label, an editable input
+ * with the extracted value, and the unit. Core fields (the ones we save
+ * to a session record) are always shown — when missing they get the
+ * yellow `.missing` tint so the user knows what to verify. Non-core
+ * fields are only shown when they have a value.
+ *
+ * Two action buttons at the bottom:
+ *   - "Edit Manually →" sends the extracted fields into the Manual tab
+ *     quick-entry form and switches tabs.
+ *   - "Looks Right — Save Session" saves directly to K.sessions and
+ *     clears the photo state.
+ *
+ * @param {object} json the parsed Vision API extraction result
+ */
+function renderExtractedData(json) {
+  const sourceLabel = json.source && json.source !== 'Unknown'
+    ? `Extracted from ${json.source}`
+    : 'Extracted';
+
+  // Core fields = the ones we always show (and always save). Non-core
+  // fields are only rendered when present.
+  const coreKeys = new Set([
+    'avg_power_w','normalized_power_w','avg_hr_bpm',
+    'avg_cadence_rpm','duration_seconds','distance_miles','tss',
+  ]);
+
+  /** @type {Array<{key:string,label:string,unit:string,value:any,step?:string}>} */
+  const stats = [
+    { key: 'avg_power_w',         label: 'Avg Power',  unit: 'W',    value: json.avg_power_w },
+    { key: 'normalized_power_w',  label: 'NP',         unit: 'W',    value: json.normalized_power_w },
+    { key: 'max_power_w',         label: 'Max Power',  unit: 'W',    value: json.max_power_w },
+    { key: 'avg_hr_bpm',          label: 'Avg HR',     unit: 'bpm',  value: json.avg_hr_bpm },
+    { key: 'max_hr_bpm',          label: 'Max HR',     unit: 'bpm',  value: json.max_hr_bpm },
+    { key: 'avg_cadence_rpm',     label: 'Cadence',    unit: 'rpm',  value: json.avg_cadence_rpm },
+    { key: 'duration_seconds',    label: 'Duration',   unit: 'sec',  value: json.duration_seconds },
+    { key: 'distance_miles',      label: 'Distance',   unit: 'mi',   value: json.distance_miles, step: '0.01' },
+    { key: 'distance_km',         label: 'Distance',   unit: 'km',   value: json.distance_km, step: '0.01' },
+    { key: 'elevation_m',         label: 'Elevation',  unit: 'm',    value: json.elevation_m },
+    { key: 'tss',                 label: 'TSS',        unit: '',     value: json.tss },
+    { key: 'intensity_factor',    label: 'IF',         unit: '',     value: json.intensity_factor, step: '0.001' },
+    { key: 'calories_kcal',       label: 'Calories',   unit: 'kcal', value: json.calories_kcal },
+    { key: 'avg_speed_mph',       label: 'Avg Speed',  unit: 'mph',  value: json.avg_speed_mph, step: '0.1' },
+  ];
+
+  const renderedStats = stats
+    .filter(s => coreKeys.has(s.key) || (s.value !== null && s.value !== undefined))
+    .map(s => {
+      const missing = s.value === null || s.value === undefined;
+      const stepAttr = s.step ? ` step="${s.step}"` : '';
+      return `
+        <div class="photo-stat${missing ? ' missing' : ''}">
+          <span class="stat-label">${escapeHtml(s.label)}</span>
+          <input type="number"${stepAttr} data-ext-key="${s.key}" value="${missing ? '' : s.value}" placeholder="${missing ? '?' : ''}" />
+          <span class="small" style="color:var(--fg-faint);">${escapeHtml(s.unit)}</span>
+        </div>
+      `;
+    })
+    .join('');
+
+  // Meta rows: source-of-truth metadata that's not a metric. Date always
+  // shown so the saved session has a date even if the photo didn't carry one.
+  const metaRows = [
+    { label: 'Date',     key: 'date',          value: json.date || state.today, type: 'date' },
+    { label: 'Activity', key: 'activity_type', value: json.activity_type, type: 'text' },
+    { label: 'Workout',  key: 'workout_name',  value: json.workout_name,  type: 'text' },
+    { label: 'Route',    key: 'route_name',    value: json.route_name,    type: 'text' },
+  ].filter(r => r.value !== null && r.value !== undefined && r.value !== '' || r.key === 'date');
+
+  const renderedMeta = metaRows.map(m => `
+    <div class="dd-row">
+      <span class="k">${escapeHtml(m.label)}</span>
+      <input type="${m.type}" data-ext-key="${m.key}" value="${escapeHtml(String(m.value ?? ''))}"
+             style="text-align:right; background:transparent; border:0; border-bottom:1px dashed var(--border); padding:2px 4px; width:60%;" />
+    </div>
+  `).join('');
+
+  // Confidence note: which core fields the model couldn't read.
+  const missingCore = [...coreKeys].filter(k => json[k] === null || json[k] === undefined);
+  const confidenceNote = missingCore.length
+    ? `<div class="small" style="color:var(--yellow); margin-top:8px;">⚠ Couldn't read: ${missingCore.join(', ')}. Yellow fields need verification.</div>`
+    : `<div class="small" style="color:var(--green); margin-top:8px;">✓ All core fields extracted.</div>`;
+
+  // Optional raw notes catch-all from the model
+  const rawNotesBlock = json.raw_notes
+    ? `<div class="gap"></div>
+       <label class="label">Raw notes</label>
+       <textarea data-ext-key="raw_notes" rows="2">${escapeHtml(json.raw_notes)}</textarea>`
+    : '';
+
+  $('#photo-results').innerHTML = `
     <div class="card">
-      <div class="card-head"><h3>EXTRACTED (raw)</h3><span class="photo-source-pill">${escapeHtml(result.json.source || 'Unknown')}</span></div>
-      <pre style="font-size:11px; white-space:pre-wrap; word-break:break-word; color:var(--fg-dim); margin:0;">${escapeHtml(JSON.stringify(result.json, null, 2))}</pre>
+      <div class="card-head">
+        <h3>EXTRACTED DATA</h3>
+        <span class="photo-source-pill">${escapeHtml(sourceLabel)}</span>
+      </div>
+      ${renderedMeta}
+      <div class="gap"></div>
+      <div class="photo-stats">${renderedStats}</div>
+      ${confidenceNote}
+      ${rawNotesBlock}
+      <div class="gap"></div>
+      <div class="btn-row">
+        <button class="btn ghost" id="ext-edit-manual">Edit Manually →</button>
+        <button class="btn"       id="ext-save">Looks Right — Save Session</button>
+      </div>
     </div>
   `;
+
+  $('#ext-edit-manual').addEventListener('click', sendExtractedToManual);
+  $('#ext-save').addEventListener('click', saveExtractedSession);
+}
+
+/**
+ * Read all `data-ext-key` inputs in the extracted-data card and build
+ * a flat object mapping the extraction-schema keys to current input values.
+ * Empty strings become null. Number inputs are coerced to numbers.
+ *
+ * @returns {object}
+ */
+function readExtractedFields() {
+  const fields = {};
+  $('#photo-results').querySelectorAll('[data-ext-key]').forEach(el => {
+    const key = el.dataset.extKey;
+    const raw = el.value;
+    if (raw === '' || raw == null) { fields[key] = null; return; }
+    fields[key] = el.type === 'number' ? Number(raw) : raw;
+  });
+  return fields;
+}
+
+/** Push extracted values into the Manual tab's quick-entry form, switch tab. */
+function sendExtractedToManual() {
+  const f = readExtractedFields();
+  if (f.avg_power_w        != null) $('#qe-power').value = f.avg_power_w;
+  if (f.normalized_power_w != null) $('#qe-np').value    = f.normalized_power_w;
+  if (f.avg_hr_bpm         != null) $('#qe-hr').value    = f.avg_hr_bpm;
+  if (f.avg_cadence_rpm    != null) $('#qe-cad').value   = f.avg_cadence_rpm;
+  if (f.duration_seconds   != null) $('#qe-dur').value   = Math.round(f.duration_seconds / 60);
+  if (f.distance_miles     != null) $('#qe-dist').value  = f.distance_miles;
+  else if (f.distance_km   != null) $('#qe-dist').value  = +(f.distance_km * 0.621371).toFixed(2);
+  if (f.date)                       $('#qe-date').value  = f.date;
+
+  // Concatenate any prose fields into the notes textarea
+  const noteParts = [f.workout_name, f.route_name, f.raw_notes].filter(Boolean);
+  if (noteParts.length) $('#qe-notes').value = noteParts.join(' · ');
+
+  setDataMode('manual');
+  toast('Extracted → Manual');
+}
+
+/**
+ * Save the extracted (and possibly edited) values directly as a session
+ * record. Auto-links to a plan day if the saved date matches one. Triggers
+ * the same downstream rendering as `quickEntrySave`.
+ */
+function saveExtractedSession() {
+  const f = readExtractedFields();
+
+  const date = f.date || state.today;
+  const planMatch = state.plan.sessions.find(s => s.date === date);
+
+  const session = {
+    date,
+    day:           planMatch ? planMatch.day : null,
+    avg_power_w:   f.avg_power_w        ?? null,
+    np_w:          f.normalized_power_w ?? null,
+    max_power_w:   f.max_power_w        ?? null,
+    avg_hr:        f.avg_hr_bpm         ?? null,
+    max_hr:        f.max_hr_bpm         ?? null,
+    avg_cadence:   f.avg_cadence_rpm    ?? null,
+    avg_speed_mph: f.avg_speed_mph      ?? null,
+    duration_min:  f.duration_seconds != null ? Math.round(f.duration_seconds / 60) : null,
+    distance_mi:   f.distance_miles    ?? (f.distance_km != null ? +(f.distance_km * 0.621371).toFixed(2) : null),
+    distance_km:   f.distance_km        ?? null,
+    elevation_m:   f.elevation_m        ?? null,
+    tss:           f.tss                ?? null,
+    if:            f.intensity_factor   ?? null,
+    calories:      f.calories_kcal      ?? null,
+    workout_name:  f.workout_name       ?? null,
+    route:         f.route_name         ?? null,
+    activity_type: f.activity_type      ?? null,
+    notes: [f.workout_name, f.route_name, f.raw_notes].filter(Boolean).join(' · ') || '',
+    source: 'photo-extraction',
+  };
+
+  const arr = load(K.sessions, []);
+  arr.push(session);
+  save(K.sessions, arr);
+
+  toast('Session saved from photo');
+  clearPhoto();
+  renderLog();
 }
 
 // ---------------------------------------------------------------------------
