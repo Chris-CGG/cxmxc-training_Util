@@ -1,0 +1,81 @@
+# Deploy the static PWA to GitHub Pages on every push to main.
+#
+# v0.1.0 has no build step — index.html, the JSON data files, the engine
+# modules, the manifest, the service worker, and the icon are all served
+# directly. The "build" job here just uploads the repository working tree
+# (minus things that would clutter the deployment) as a Pages artifact;
+# the deploy job publishes it.
+#
+# This workflow uses the modern GitHub-Actions-as-source path
+# (Settings → Pages → Build and deployment → Source: GitHub Actions),
+# not the legacy `gh-pages` branch model.
+
+name: Deploy PWA to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Allow manual run from the Actions tab.
+  workflow_dispatch:
+
+# Pages requires these permissions to publish.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One in-flight deploy at a time. New pushes cancel a stale build but never
+# interrupt a deploy that's already running.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Run the engine smoke tests before publishing. If they fail, the
+      # broken bundle does not reach the live site.
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run engine smoke tests
+        run: npm test
+
+      # Stage the deployable subset. Excludes git internals, the test
+      # harness, and dotfiles that have no business on the public site.
+      # The PDLC docs and the architecture diagrams ship — they are part
+      # of the public face of the project.
+      - name: Stage site
+        run: |
+          mkdir -p _site
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='_site' \
+            --exclude='tests' \
+            --exclude='.env' \
+            --exclude='.DS_Store' \
+            --exclude='node_modules' \
+            ./ _site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
