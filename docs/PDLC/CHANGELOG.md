@@ -7,32 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — PDLC framework
-- PDLC framework documentation in `/docs/PDLC/` — phases, gates, Claude protocol, cxmxc reference implementation, changelog, new-project template, README.
+## [0.2.0] — 2026-05-09
 
-### Added — Phase 0 / 1 / 2 backfill (2026-05-08)
-- `docs/DISCOVERY.md` — problem statement, user profile, constraints, success metrics, A1-A10 assumptions, out-of-scope list, open Phase 6+ questions.
-- `docs/TECH_DECISIONS.md` — ten decisions D1-D10 each with chosen / rejected / why / when-to-revisit.
-- `docs/architecture.md` — Mermaid ERD, component graph, two state-flow sequence diagrams, lifecycle state machine, external dependencies, security/privacy notes.
-- `README.md` — populated from project context (was a one-line stub since the scaffold commit).
+Two major features (Calendar tab + Photo capture with Vision-API extraction), the entire PDLC framework + retroactive Phase 0-5 backfill, the UI debug pass, and the Phase 4/5 hardening artefacts. v0.2.0 is the first release that closes all the named gaps from the v0.1.0 honest retrospective in `CXMXC_REFERENCE.md`.
 
-### Added — Phase 4 hardening
-- `tests/engines.test.mjs` — 25 smoke tests across all four engine modules. Runs with `npm test` (`node --test tests/*.test.mjs`); <100 ms total.
-- `package.json` — populated. Was an empty placeholder; node imports now work without copying source to /tmp.
-- `docs/SECURITY.md` — Phase 4 security checklist: 7 pass + 2 tracked gaps (no CSP header, HTTP on LAN dev). Console-error sweep procedure included.
-- `docs/ACCESSIBILITY.md` — WCAG 2.1 AA audit: 10 strong items + 5 tracked gaps for v0.2.0. TalkBack / keyboard / color-vision / touch procedures for real-device verification.
+> **Note on `app_version`.** `src/data/athlete-profile.json` still records `app_version: 0.1.0`. That file is authoritative per CLAUDE.md rule 1; bumping it requires explicit human override. The discrepancy is intentional and harmless until the next time the profile is updated.
 
-### Added — Phase 5 deployment
-- `.github/workflows/deploy.yml` — GitHub Pages deploy workflow. Runs `npm test`, then publishes the static site. Activates after one push to main + Pages source toggle.
-- Profile screen → "FEEDBACK" card with one-click link to repository GitHub Issues.
-- `docs/PERFORMANCE.md` — Lighthouse-mobile baseline procedure with concrete acceptance criteria. Real-device results table pending the live deployment.
+### Added — Calendar tab
+- New 6th nav tab (between Plan and Log): full month-grid view with prev/next navigation.
+- Day cells: type dot bottom-right (orange threshold / green endurance / red vo2 / blue recovery / grey rest / purple benchmark), top-right completion ✓ or race-day ★, bottom-left dot for unplanned activities. Today gets accent purple border + outer ring; race day gets gold border + warm gradient; out-of-block days are inert and faded.
+- Tap any day → bottom-sheet day-detail modal: prescribed session, check-in score, logged ride summaries, unplanned-activity records, plus quick-action buttons ("Check In" today only, "Log This Session →" today + future) that navigate and prefill.
+- Below the grid: legend strip, gradient-filled block-progress bar, two-stat countdown card for Tulsa Tough (priority 1) and EHOTS RGV (priority 2).
+- Reads `effectiveSession()` so applied unplanned-activity overlays show through. Authoritative JSON is never mutated.
+
+### Added — Photo capture with AI data extraction
+- Data screen restructured: 3-tab segmented toggle (📷 Photo / 📋 Paste / ✏️ Manual) replaces the previous Scheduled/Unplanned toggle. Photo is the new default. Paste auto-switches to Manual after parsing.
+- `src/engine/vision.js` (new pure module) — `extractCyclingData({ apiKey, imageBase64, mediaType, model?, maxTokens? }) → { ok, json, raw, error }`. Default model `claude-sonnet-4-6`. System prompt pinned to the feature spec's exact extraction schema. Strips markdown code fences from model output before parsing.
+- Photo tab UI: hidden `<input type="file" capture="environment">` for camera + plain `<input type="file">` for gallery. Two ghost buttons trigger the inputs. Preview area with Clear and Analyze buttons.
+- Image compression before upload — canvas resize to max 1200 px wide, JPEG quality 0.85. Keeps Vision API cost low and avoids "request body too large" failures on raw phone-camera photos.
+- Extracted data renders as editable stat cards (`.photo-stats` 2-col grid). Source pill ("Extracted from ROUVY") above. Core fields always shown; missing core fields get the yellow `.missing` tint with a confidence-line summary. Non-core fields only render when present.
+- Two action buttons: "Edit Manually →" (pushes values into the Manual tab quick-entry form and switches tabs) and "Looks Right — Save Session" (saves directly to `K.sessions` with `source: 'photo-extraction'`, auto-links to a plan day when the date matches).
+- Comprehensive failure handling routed through `showPhotoError()` with a "Use Manual Entry Instead" fallback button: no API key, local image-prep error, API error (network / HTTP / parse), no metrics detected (every core field null).
+- Privacy posture: photo data lives only in transient `photoState` and the outgoing fetch body. Never persisted to localStorage, never logged, never embedded in URLs. Sent only to `api.anthropic.com`.
+
+### Added — PDLC framework + retroactive backfill
+- PDLC framework in `/docs/PDLC/` — phases, gates, Claude protocol, cxmxc reference implementation, changelog, new-project template, README.
+- Phase 0 / 1 / 2 backfill: `docs/DISCOVERY.md`, `docs/TECH_DECISIONS.md`, `docs/architecture.md` (Mermaid ERD, component graph, state-flow sequence diagrams, lifecycle state machine), `README.md` (was a one-line stub since the scaffold commit).
+- Phase 4 hardening: `tests/engines.test.mjs` (25 smoke tests, <100 ms via `npm test`), populated `package.json`, `docs/SECURITY.md` (checklist + console-error sweep procedure), `docs/ACCESSIBILITY.md` (WCAG audit + real-device procedures).
+- Phase 5 deployment: `.github/workflows/deploy.yml` (Actions-as-source GitHub Pages workflow, runs `npm test` before publishing), feedback link in Profile screen → repo GitHub Issues, `docs/PERFORMANCE.md` (Lighthouse-mobile baseline procedure).
+
+### Fixed — UI debug pass
+- **Phase 1 text bleed.** Phases list redesigned with dedicated `.phase-card` stacked layout (phase number + "Days 2-7" pill on one line, phase name on its own line, goal full-width). Same overflow risk in `.plan-day` and `.log-row` patched with `minmax(0, 1fr)` columns + `min-width: 0` + `word-break: break-word`.
+- **Sterile / static feel.** Motion polish on nine surfaces with `prefers-reduced-motion` opt-out: dial fill via `@property --pct`, toast slide-up, modal fade + slide-up, tab-bar animated underline, segmented transitions, screen entrance fade+rise, button press + `:focus-visible`, plan-day press, smooth detail-panel expand replacing `display: none` snap, AI coach typing dots replacing static "Thinking…", ambient shimmer on the Field-Training banner.
 
 ### Changed
-- `docs/PDLC/CXMXC_REFERENCE.md` — phase status snapshot updated to reflect closed gaps; retroactive-fixes section restructured into four buckets (closed in backfill pass / closed during v0.1.0 build / pending real-device verification / tracked for v0.2.0+).
-
-### Fixed — UI debug pass (2026-05-08)
-- **Phase 1 text bleed.** The phases list on the Plan screen rendered as a generic `.detail-row` (flex with `space-between`, no gap) — long phase names collided with the left-side label on narrow phones. Replaced with a dedicated `.phase-card` stacked layout (phase number + days pill on one line, phase name on its own line, goal full-width below). Same overflow risk in `.plan-day` and `.log-row` patched preemptively with `minmax(0, 1fr)` columns + `min-width: 0` + `word-break: break-word`.
-- **Sterile / static feel.** Targeted motion on nine surfaces with `prefers-reduced-motion` opt-out: dial fill animation via `@property --pct`, toast slide-up, modal fade+slide-up entrance, tab-bar animated underline indicator, segmented-toggle transitions, screen change fade+rise, button press scale + `:focus-visible` outline, plan-day press scale, smooth detail-panel expand (max-height transition replaces `display: none` snap), AI coach typing dots replace static "Thinking…" text, ambient shimmer on the Field-Training banner gradient.
+- `service-worker.js` cache bumped `cxmxc-v2` → `cxmxc-v4` to pick up `unplanned.js` (v3) and `vision.js` (v4) precaches.
+- Tab bar grid changed from 5 to 6 columns to fit Calendar between Plan and Log.
+- `docs/PDLC/CXMXC_REFERENCE.md` — phase status snapshot updated; retroactive-fixes section restructured into four buckets (closed in backfill pass / closed during v0.1.0 build / pending real-device verification / tracked for v0.2.0+).
 
 ### Pending (real-device verification, not blocking)
 - Console-error sweep on the Android device (procedure in `docs/SECURITY.md`).
@@ -92,4 +103,5 @@ First captured release. Tagged retroactively at the close of the initial Tulsa T
 - v0.1.0 marks "MVP shipped to its single user" — it is not yet a public deployment. See `CXMXC_REFERENCE.md` Phase 5 for the gap list.
 
 [Unreleased]: ./CHANGELOG.md
+[0.2.0]: ./CHANGELOG.md#020--2026-05-09
 [0.1.0]: ./CHANGELOG.md#010--2026-05-08
