@@ -2,7 +2,7 @@
 
 ## What this is
 
-A single-athlete training PWA built for **Chris Clarke-Gonzalez (CxMxC)** preparing for the **Tulsa Tough Ace Peloton Fondo on 2026-06-06** (103 mi). It is *not* a generic training app — every default, threshold, and tone choice is shaped to one person's physiology and history. A secondary goal is **EHOTS Rio Grande Valley MTB on 2026-07-05**.
+A single-athlete training PWA built for **CxMxC** preparing for the **Tulsa Tough Ace Peloton Fondo on 2026-06-06** (103 mi). It is *not* a generic training app — every default, threshold, and tone choice is shaped to one person's physiology and history. A secondary goal is **EHOTS Rio Grande Valley MTB on 2026-07-05**.
 
 The app is offline-first, installable on Android, and reads three JSON files in `src/data/` as authoritative source-of-truth: `athlete-profile.json`, `training-plan.json`, `rouvy-routes.json`.
 

@@ -2,7 +2,7 @@
 
 > **A repeatable protocol for human-AI collaborative builds.**
 
-This framework was built during the cxmxc-training project — a single-athlete training PWA for Chris Clarke-Gonzalez preparing for the Tulsa Tough Ace Peloton Fondo. It was extracted from that project so future builds (yours, mine, or someone else's) start from a known-good process instead of inventing one each time.
+This framework was built during the cxmxc-training project — a single-athlete training PWA for CxMxC preparing for the Tulsa Tough Ace Peloton Fondo. It was extracted from that project so future builds (yours, mine, or someone else's) start from a known-good process instead of inventing one each time.
 
 ---
 

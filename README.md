@@ -1,6 +1,6 @@
 # CxMxC Training
 
-> Single-athlete training PWA for **Chris Clarke-Gonzalez (CxMxC)** preparing for the **Tulsa Tough Ace Peloton Fondo on 2026-06-06** (103 mi). Calibrated to one athlete's documented history of burst-crash cycles and panic attacks under load — mental state is treated as physiology, not weakness.
+> Single-athlete training PWA for **CxMxC** preparing for the **Tulsa Tough Ace Peloton Fondo on 2026-06-06** (103 mi). Calibrated to one athlete's documented history of burst-crash cycles and panic attacks under load — mental state is treated as physiology, not weakness.
 
 The app runs offline-first, installs as a PWA on Android, and reads three authoritative JSON files in `src/data/` as source of truth. Every athlete-specific value (FTP, zones, thresholds, race dates) is read at runtime; nothing is hardcoded in JS or HTML.
 

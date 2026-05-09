@@ -73,7 +73,7 @@ First captured release. Tagged retroactively at the close of the initial Tulsa T
 ### Added
 
 #### Authoritative data
-- `src/data/athlete-profile.json` — Chris Clarke-Gonzalez profile (FTP 232 W, 93 kg, 36 yo). Identity, equipment, baseline numbers, riding/breathing/mental-health background, RHR and stability-score thresholds, HR + power zones, primary and secondary goals (Tulsa Tough 2026-06-06, EHOTS RGV 2026-07-05), water target, app version meta.
+- `src/data/athlete-profile.json` — CxMxC profile (FTP 232 W, 93 kg, 36 yo). Identity, equipment, baseline numbers, riding/breathing/mental-health background, RHR and stability-score thresholds, HR + power zones, primary and secondary goals (Tulsa Tough 2026-06-06, EHOTS RGV 2026-07-05), water target, app version meta.
 - `src/data/training-plan.json` — 20-day Tulsa Tough Peak Block (2026-05-07 → 2026-05-26). Three phases: Power and Repeatability, Ace Peloton Simulation, Taper and Sharpen. Per-day prescriptions: type, duration, target intensity, target cadence, ERG flag, ROUVY workout/route, key metrics, fueling target, notes.
 - `src/data/rouvy-routes.json` — curated ROUVY library: 25 real routes + 23 structured workouts, tagged by training type, duration, elevation, difficulty, FTP range. Routes referenced from the plan carry `used_in_plan_days` for cross-linking.
 

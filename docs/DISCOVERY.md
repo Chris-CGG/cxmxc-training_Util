@@ -14,7 +14,7 @@ The secondary goal is **EHOTS Rio Grande Valley MTB on 2026-07-05**, which begin
 
 ## User profile
 
-**Chris Clarke-Gonzalez (CxMxC)** — 36 years old, 205 lb / 93 kg, 6'4" / 193 cm.
+**CxMxC** — 36 years old, 205 lb / 93 kg, 6'4" / 193 cm.
 
 - **Riding background.** Fixed-gear urban crit racer. Raw power and race instincts. Group-ride experience but **not at Ace pace.** Currently learning road peloton dynamics.
 - **Cycling numbers.** FTP 232 W (up from 211 W last month, ROUVY estimated). 2.5 W/kg. Resting HR baseline 56 bpm. Max HR seen 184 bpm. Z2 power max 185 W. Sweet spot 204-213 W. Threshold 220-232 W. PRs: 20-min 244 W, 5-min 275 W, 1-min 362 W.

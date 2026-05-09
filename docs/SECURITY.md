@@ -242,7 +242,7 @@ How the merge works at runtime:
 
 Verified after the audit:
 ```
-git grep -nE 'Chris Clarke-Gonzalez|808S 0003814|septal_deviation|panic_attacks_history' \
+git grep -nE '<athlete-name>|<hr-monitor-serial>|septal_deviation|panic_attacks_history' \
   -- ':!docs/PDLC/CHANGELOG.md' ':!docs/PDLC/CXMXC_REFERENCE.md' ':!docs/DISCOVERY.md' \
   ':!docs/architecture.md' ':!CLAUDE.md' ':!README.md' ':!docs/SECURITY.md'
 ```
