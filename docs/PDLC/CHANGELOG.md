@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `docs/PDLC/CXMXC_REFERENCE.md` — phase status snapshot updated to reflect closed gaps; retroactive-fixes section restructured into four buckets (closed in backfill pass / closed during v0.1.0 build / pending real-device verification / tracked for v0.2.0+).
 
+### Fixed — UI debug pass (2026-05-08)
+- **Phase 1 text bleed.** The phases list on the Plan screen rendered as a generic `.detail-row` (flex with `space-between`, no gap) — long phase names collided with the left-side label on narrow phones. Replaced with a dedicated `.phase-card` stacked layout (phase number + days pill on one line, phase name on its own line, goal full-width below). Same overflow risk in `.plan-day` and `.log-row` patched preemptively with `minmax(0, 1fr)` columns + `min-width: 0` + `word-break: break-word`.
+- **Sterile / static feel.** Targeted motion on nine surfaces with `prefers-reduced-motion` opt-out: dial fill animation via `@property --pct`, toast slide-up, modal fade+slide-up entrance, tab-bar animated underline indicator, segmented-toggle transitions, screen change fade+rise, button press scale + `:focus-visible` outline, plan-day press scale, smooth detail-panel expand (max-height transition replaces `display: none` snap), AI coach typing dots replace static "Thinking…" text, ambient shimmer on the Field-Training banner gradient.
+
 ### Pending (real-device verification, not blocking)
 - Console-error sweep on the Android device (procedure in `docs/SECURITY.md`).
 - TalkBack / keyboard / color-vision / touch walks (procedures in `docs/ACCESSIBILITY.md`).
