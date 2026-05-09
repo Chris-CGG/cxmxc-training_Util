@@ -404,6 +404,121 @@
   .trend .bar.green { background: var(--green); }
   .trend .bar.yellow { background: var(--yellow); }
   .trend .bar.red { background: var(--red); }
+
+  /* Unplanned banner — invitation card on Check-In */
+  .unplanned-banner {
+    background: linear-gradient(135deg, var(--accent-soft), transparent);
+    border: 1px solid var(--accent);
+  }
+  .unplanned-banner .lead {
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.04em;
+  }
+  .unplanned-banner .sub {
+    color: var(--fg-dim); font-size: 12px; margin-bottom: 10px;
+  }
+  .unplanned-summary {
+    background: var(--bg-elev2); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 10px 12px; margin-top: 10px;
+  }
+  .unplanned-summary .row1 {
+    display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px;
+  }
+  .unplanned-summary .when {
+    font-family: 'Bebas Neue', sans-serif; font-size: 16px; color: var(--accent);
+  }
+
+  /* Segmented toggle (Data screen: Scheduled / Unplanned) */
+  .segmented {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+    background: var(--bg-elev2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px; gap: 4px;
+    margin-bottom: 10px;
+  }
+  .segmented button {
+    background: transparent; border: 0; padding: 10px 8px;
+    color: var(--fg-dim); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; border-radius: 7px;
+  }
+  .segmented button.on {
+    background: var(--accent); color: white;
+  }
+
+  /* Modal form layout */
+  .modal-content h2 { font-size: 24px; margin-bottom: 4px; }
+  .modal-section { margin-bottom: 14px; }
+  .modal-section .label { margin-bottom: 6px; }
+  .opt-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px;
+  }
+  .opt-grid button {
+    background: var(--bg-elev2); border: 1px solid var(--border-soft);
+    border-radius: 8px; padding: 8px;
+    font-size: 11px; letter-spacing: 0.04em; color: var(--fg);
+  }
+  .opt-grid button.on {
+    background: var(--accent); border-color: var(--accent); color: white;
+  }
+  .unit-toggle {
+    display: inline-flex; background: var(--bg-elev2); border: 1px solid var(--border-soft);
+    border-radius: 6px; overflow: hidden; margin-left: 6px;
+  }
+  .unit-toggle button {
+    background: transparent; border: 0; padding: 4px 10px;
+    font-size: 10px; color: var(--fg-dim); letter-spacing: 0.08em;
+  }
+  .unit-toggle button.on { background: var(--accent); color: white; }
+
+  .tss-readout {
+    display: flex; align-items: baseline; justify-content: space-between;
+    background: var(--bg-elev2); border: 1px solid var(--border-soft);
+    border-radius: 8px; padding: 10px 12px; margin-top: 6px;
+  }
+  .tss-readout .num {
+    font-family: 'Bebas Neue', sans-serif; font-size: 32px; line-height: 1;
+    color: var(--accent);
+  }
+  .tss-readout .lab {
+    font-size: 10px; letter-spacing: 0.1em; color: var(--fg-dim); text-transform: uppercase;
+  }
+
+  /* Impact preview — the before/after card list */
+  .impact-change {
+    background: var(--bg-elev2); border: 1px solid var(--border-soft);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+  }
+  .impact-change .head {
+    display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;
+  }
+  .impact-change .ic-day {
+    font-family: 'Bebas Neue', sans-serif; font-size: 16px; color: var(--accent);
+  }
+  .impact-change .kind {
+    font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 2px 6px; border-radius: 4px;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .impact-change .kind.replace { background: rgba(196, 163, 255, 0.18); color: var(--accent-2); }
+  .impact-change .kind.protection { background: rgba(95, 212, 126, 0.15); color: var(--green); }
+  .impact-change .kind.downgrade { background: rgba(255, 200, 87, 0.18); color: var(--yellow); }
+  .impact-change .kind.rhr_check { background: rgba(255, 107, 107, 0.15); color: var(--red); }
+  .impact-change .kind.buffer_absorbed { background: var(--bg-elev); color: var(--fg-dim); }
+  .impact-change .ba {
+    display: grid; grid-template-columns: 1fr 18px 1fr; gap: 8px;
+    font-size: 11px;
+  }
+  .impact-change .ba .arrow {
+    text-align: center; color: var(--fg-faint); font-size: 14px; line-height: 1.2;
+  }
+  .impact-change .ba .col strong { display: block; color: var(--fg); }
+  .impact-change .ba .col .meta { color: var(--fg-dim); font-size: 10px; }
+  .impact-change .reason { color: var(--fg-dim); font-size: 11px; margin-top: 6px; }
+
+  /* Plan-day adjustment badge */
+  .plan-day.adjusted { border-color: var(--accent-2); }
+  .badge.field { background: rgba(196, 163, 255, 0.18); color: var(--accent-2); }
+  .badge.protection { background: rgba(95, 212, 126, 0.15); color: var(--green); }
+  .badge.flag { background: rgba(255, 107, 107, 0.15); color: var(--red); }
 </style>
 </head>
 <body>
@@ -499,6 +614,13 @@
         <input type="number" id="in-rhr" inputmode="numeric" min="40" max="120" placeholder="56" />
       </div>
 
+      <div class="card unplanned-banner" id="unplanned-banner">
+        <div class="lead">FIELD TRAINING</div>
+        <div class="sub">Got an unplanned ride coming up? Flag it before you go and the plan adapts around it.</div>
+        <button class="btn ghost" id="open-unplanned">Flag Unplanned Activity</button>
+        <div id="unplanned-summary-host"></div>
+      </div>
+
       <div class="card">
         <div class="card-head">
           <h3>TODAY'S PRESCRIBED</h3>
@@ -513,6 +635,12 @@
 
     <!-- DATA -->
     <section class="screen" data-screen="data">
+      <div class="segmented" role="tablist" aria-label="Activity kind">
+        <button id="seg-scheduled" class="on" data-mode="scheduled">Scheduled Session</button>
+        <button id="seg-unplanned" data-mode="unplanned">Unplanned Activity</button>
+      </div>
+
+      <div id="data-scheduled-host">
       <div class="card">
         <div class="card-head"><h2>PASTE FROM STRAVA</h2></div>
         <p class="small">Paste activity summary text from Strava. The parser pulls duration, distance, avg power, NP, avg HR, cadence.</p>
@@ -561,6 +689,69 @@
         <div class="gap"></div>
         <button class="btn" id="qe-save">Save Session Data</button>
       </div>
+      </div><!-- /#data-scheduled-host -->
+
+      <div id="data-unplanned-host" style="display:none;">
+        <div class="card">
+          <div class="card-head"><h2>LOG UNPLANNED ACTIVITY</h2></div>
+          <p class="small">Logging a ride that was not on the plan. Pick an existing flag or start fresh.</p>
+          <label class="label">Tied to a pre-flagged ride?</label>
+          <select id="up-flag-link"><option value="">— New, not pre-flagged —</option></select>
+          <div class="gap"></div>
+          <div class="row">
+            <div><label class="label">Date</label><input type="date" id="up-date" /></div>
+            <div>
+              <label class="label">Activity Type</label>
+              <select id="up-type">
+                <option value="group_outdoor">Outdoor Group Ride</option>
+                <option value="solo_outdoor">Solo Outdoor Ride</option>
+                <option value="mtb_gravel">MTB / Gravel</option>
+                <option value="race">Race / Event</option>
+                <option value="cross_training">Cross Training</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="gap"></div>
+          <div class="row3">
+            <div><label class="label">Avg Power (W)</label><input type="number" id="up-power" inputmode="numeric" /></div>
+            <div><label class="label">NP (W)</label><input type="number" id="up-np" inputmode="numeric" /></div>
+            <div><label class="label">Avg HR</label><input type="number" id="up-hr" inputmode="numeric" /></div>
+          </div>
+          <div class="gap"></div>
+          <div class="row3">
+            <div><label class="label">Cadence</label><input type="number" id="up-cad" inputmode="numeric" /></div>
+            <div><label class="label">Duration (min)</label><input type="number" id="up-dur" inputmode="numeric" /></div>
+            <div><label class="label">Distance (mi)</label><input type="number" id="up-dist" inputmode="decimal" step="0.1" /></div>
+          </div>
+          <div class="gap"></div>
+          <label class="label">RPE (1-10)</label>
+          <input type="range" class="slider" id="up-rpe" min="1" max="10" value="6" />
+          <div class="small" style="text-align:right;"><span id="up-rpe-v">6</span> / 10</div>
+
+          <div class="gap"></div>
+          <label class="label">Fueling notes</label>
+          <textarea id="up-fueling" rows="2" placeholder="Carbs/hr taken, hydration, what worked, what didn't"></textarea>
+
+          <div class="gap"></div>
+          <label class="label">Notes</label>
+          <textarea id="up-notes" rows="3" placeholder="Group dynamics, surges, crashes, route, weather"></textarea>
+
+          <div class="gap"></div>
+          <label class="label" style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="up-was-planned" style="width:auto;" />
+            <span>Actually this WAS planned (toggle on if mistakenly logged here)</span>
+          </label>
+
+          <div class="gap"></div>
+          <button class="btn" id="up-save">Save Unplanned Activity</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>FLAGGED ACTIVITIES</h2></div>
+          <div id="up-flag-list" class="small">No flagged activities yet.</div>
+        </div>
+      </div><!-- /#data-unplanned-host -->
     </section>
 
     <!-- PLAN -->
@@ -696,6 +887,99 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Pre-ride flag modal: form view + impact preview view (one modal, two screens) -->
+<div class="modal" id="unplanned-modal" role="dialog" aria-modal="true" aria-labelledby="unp-title">
+  <div class="modal-content">
+    <!-- VIEW 1: form -->
+    <div id="unp-form-view">
+      <div class="card-head">
+        <div>
+          <h2 id="unp-title">FLAG UNPLANNED ACTIVITY</h2>
+          <div class="small">Before the ride. Plan adapts on submit, you approve before anything sticks.</div>
+        </div>
+        <button class="iconbtn" id="unp-close-1">CLOSE</button>
+      </div>
+
+      <div class="modal-section">
+        <label class="label">Activity Type</label>
+        <div class="opt-grid" id="unp-type-grid"></div>
+      </div>
+
+      <div class="modal-section">
+        <label class="label">Date</label>
+        <input type="date" id="unp-date" />
+      </div>
+
+      <div class="modal-section">
+        <label class="label">Estimated Distance
+          <span class="unit-toggle">
+            <button type="button" class="on" data-unit="mi">MI</button>
+            <button type="button" data-unit="km">KM</button>
+          </span>
+        </label>
+        <input type="number" id="unp-distance" inputmode="decimal" step="0.1" placeholder="e.g. 62" />
+      </div>
+
+      <div class="modal-section">
+        <label class="label">Estimated Duration (min)</label>
+        <input type="number" id="unp-duration" inputmode="numeric" placeholder="e.g. 210" />
+      </div>
+
+      <div class="modal-section">
+        <label class="label">Estimated Intensity</label>
+        <div class="opt-grid" id="unp-intensity-grid"></div>
+      </div>
+
+      <div class="modal-section">
+        <label class="label">Time of Day</label>
+        <div class="opt-grid" id="unp-tod-grid"></div>
+      </div>
+
+      <div class="modal-section">
+        <label class="label">Notes (optional)</label>
+        <textarea id="unp-notes" rows="2" placeholder="Pace expectations, group composition, weather"></textarea>
+      </div>
+
+      <div class="tss-readout">
+        <div>
+          <div class="lab">ESTIMATED TSS</div>
+          <div class="num" id="unp-tss-num">--</div>
+        </div>
+        <div class="lab" id="unp-tss-bucket">enter duration + intensity</div>
+      </div>
+
+      <div class="gap"></div>
+      <button class="btn" id="unp-submit">See Impact Preview →</button>
+    </div>
+
+    <!-- VIEW 2: impact preview -->
+    <div id="unp-preview-view" style="display:none;">
+      <div class="card-head">
+        <div>
+          <h2>IMPACT PREVIEW</h2>
+          <div class="small">Here's how this will likely affect your plan. Nothing is applied yet.</div>
+        </div>
+        <button class="iconbtn" id="unp-close-2">CLOSE</button>
+      </div>
+
+      <div class="coach" id="unp-preview-note">
+        <div class="from">FIELD TRAINING</div>
+      </div>
+
+      <div class="gap"></div>
+      <h3>AFFECTED DAYS</h3>
+      <div id="unp-preview-changes"></div>
+
+      <div class="gap"></div>
+      <div class="btn-row">
+        <button class="btn ghost" id="unp-back">← Edit</button>
+        <button class="btn ghost" id="unp-reject">Keep Original Plan</button>
+        <button class="btn" id="unp-apply">Apply Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 /**
  * CxMxC Training — PWA shell.
@@ -742,6 +1026,18 @@ import {
   askCoach,
   summarizeRecentSessions,
 } from './src/engine/ai-coach.js';
+import {
+  estimateTSS,
+  tssBucket,
+  tssBucketLabel,
+  computeRipple,
+  activityTypeLabel,
+  intensityLabel,
+  timeOfDayLabel,
+  ACTIVITY_TYPE_LABELS,
+  INTENSITY_LABELS,
+  TIME_OF_DAY_LABELS,
+} from './src/engine/unplanned.js';
 
 // ---------------------------------------------------------------------------
 // NAMESPACE & STORAGE KEYS
@@ -763,6 +1059,7 @@ const K = {
   log:          `${NS}.log`,          // { 'YYYY-MM-DD': { water_oz, supplements:[{name,dose,taken}], notes } }
   supplements:  `${NS}.supplements`,  // [{ name, dose }] persistent supplement definitions
   sessions:     `${NS}.sessions`,     // logged ride sessions, oldest first
+  unplanned:    `${NS}.unplanned`,    // [{ id, date, state, type, estimated, actual, ripple }] — see CLAUDE.md
 };
 
 // ---------------------------------------------------------------------------
@@ -945,11 +1242,400 @@ function parseSession(text) {
 
 /**
  * Find the prescribed session for today's date, or null if today is off-block.
- * @returns {object|null} session object from training-plan.json
+ * Returns the *effective* session — i.e. with any applied unplanned-activity
+ * overlay merged in. Use the raw `state.plan.sessions[]` if you need the
+ * original prescription.
+ * @returns {object|null}
  */
 function todaysSession() {
   if (!state.plan) return null;
-  return state.plan.sessions.find(s => s.date === state.today) || null;
+  const raw = state.plan.sessions.find(s => s.date === state.today);
+  return raw ? effectiveSession(raw) : null;
+}
+
+// ---------------------------------------------------------------------------
+// UNPLANNED ACTIVITY — flag, preview, apply, overlay
+// "Field training" model. Athlete flags an unplanned ride before it happens;
+// the engine proposes a plan ripple; the athlete approves or rejects. Nothing
+// auto-applies. Language rules in the engine module are non-negotiable.
+// ---------------------------------------------------------------------------
+
+/** ID generator for unplanned records. */
+function newUnplannedId() {
+  return 'unp-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+}
+
+/** Add `n` days to an ISO date string. */
+function addDaysISO(iso, n) {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Lookup a stored unplanned record by id, or null. */
+function getUnplannedById(id) {
+  return (load(K.unplanned, []) || []).find(u => u.id === id) || null;
+}
+
+/** Insert or replace an unplanned record by id. */
+function saveUnplanned(record) {
+  const arr = load(K.unplanned, []);
+  const idx = arr.findIndex(u => u.id === record.id);
+  if (idx >= 0) arr[idx] = record; else arr.push(record);
+  save(K.unplanned, arr);
+}
+
+/**
+ * Walk all stored unplanned records and build a per-day overlay map of the
+ * applied changes only. Last-write-wins per day if multiple unplanned
+ * records target the same calendar day.
+ * @returns {Object<string, object>} keyed by `String(day)`
+ */
+function buildAdjustmentOverlay() {
+  const overlay = {};
+  for (const u of (load(K.unplanned, []) || [])) {
+    if (!u.ripple || u.ripple.state !== 'applied') continue;
+    for (const c of (u.ripple.changes || [])) {
+      overlay[String(c.day)] = { ...c, source_unplanned_id: u.id };
+    }
+  }
+  return overlay;
+}
+
+/**
+ * Merge an unplanned-activity overlay onto a single plan session.
+ * Pure: returns a new object, does not mutate inputs. The merged object
+ * carries an `_adjustment` field so the renderer can show an "adjusted" hint.
+ *
+ * @param {object} planSession a session from training-plan.json
+ * @param {object} [overlay] precomputed overlay; rebuilt on demand if omitted
+ * @returns {object} effective session for rendering
+ */
+function effectiveSession(planSession, overlay) {
+  overlay = overlay || buildAdjustmentOverlay();
+  const c = overlay[String(planSession.day)];
+  if (!c) return planSession;
+  if (c.kind === 'replace' || c.kind === 'downgrade' || c.kind === 'protection') {
+    const after = c.after || {};
+    return {
+      ...planSession,
+      type: after.type ?? planSession.type,
+      badge: after.badge ?? planSession.badge,
+      title: after.title ?? planSession.title,
+      duration_min: after.duration_min ?? planSession.duration_min,
+      target_intensity: after.target_intensity ?? planSession.target_intensity,
+      notes: after.notes
+        ? after.notes + (planSession.notes ? ' · ' + planSession.notes : '')
+        : planSession.notes,
+      _adjustment: c,
+    };
+  }
+  // rhr_check / buffer_absorbed: keep prescription; only attach the flag.
+  return { ...planSession, _adjustment: c };
+}
+
+// ---- Modal state machine ----------------------------------------------------
+
+/** Working draft of the unplanned record while the modal is open. */
+let modalDraft = null;
+
+/**
+ * Open the pre-ride flag modal in form view, fresh draft.
+ * Pre-fills date to tomorrow (most common case).
+ */
+function openUnplannedModal() {
+  modalDraft = {
+    id: newUnplannedId(),
+    date: addDaysISO(state.today, 1),
+    state: 'preview',
+    type: 'group_outdoor',
+    estimated: {
+      distance: '',
+      distance_unit: 'mi',
+      duration_min: '',
+      intensity: 'moderate',
+      time_of_day: 'morning',
+      tss: 0,
+    },
+    notes: '',
+    actual: null,
+    ripple: null,
+    flagged_at: null,
+  };
+  paintModalForm();
+  showModalView('form');
+  $('#unplanned-modal').classList.add('open');
+}
+
+/** Open the modal in REVIEW mode for an existing flag (preview state). */
+function openUnplannedModalForReview(id) {
+  const rec = getUnplannedById(id);
+  if (!rec) { toast('Flag not found'); return; }
+  modalDraft = JSON.parse(JSON.stringify(rec));
+  // Make sure ripple is fresh in case the plan changed since the flag was saved
+  modalDraft.ripple = { ...computeRipple(modalDraft, state.plan), state: rec.ripple?.state || 'preview' };
+  paintModalForm();
+  paintModalPreview();
+  showModalView(rec.ripple?.state === 'applied' ? 'preview' : 'preview');
+  $('#unplanned-modal').classList.add('open');
+}
+
+/** Close the modal and clear the draft. */
+function closeUnplannedModal() {
+  $('#unplanned-modal').classList.remove('open');
+  modalDraft = null;
+}
+
+/** Toggle between the form view and the impact-preview view. */
+function showModalView(which) {
+  $('#unp-form-view').style.display    = which === 'form' ? '' : 'none';
+  $('#unp-preview-view').style.display = which === 'preview' ? '' : 'none';
+}
+
+/** Paint the option grids and inputs from the current modalDraft. */
+function paintModalForm() {
+  // option grids
+  paintOptGrid('#unp-type-grid',      ACTIVITY_TYPE_LABELS, modalDraft.type,
+               v => { modalDraft.type = v; paintModalForm(); });
+  paintOptGrid('#unp-intensity-grid', INTENSITY_LABELS,     modalDraft.estimated.intensity,
+               v => { modalDraft.estimated.intensity = v; recalcModalTSS(); paintModalForm(); });
+  paintOptGrid('#unp-tod-grid',       TIME_OF_DAY_LABELS,   modalDraft.estimated.time_of_day,
+               v => { modalDraft.estimated.time_of_day = v; paintModalForm(); });
+
+  $('#unp-date').value     = modalDraft.date;
+  $('#unp-distance').value = modalDraft.estimated.distance ?? '';
+  $('#unp-duration').value = modalDraft.estimated.duration_min ?? '';
+  $('#unp-notes').value    = modalDraft.notes || '';
+
+  // unit toggle paint
+  $$('#unplanned-modal .unit-toggle button').forEach(b => {
+    b.classList.toggle('on', b.dataset.unit === modalDraft.estimated.distance_unit);
+  });
+
+  recalcModalTSS();
+}
+
+/** Render an option grid: one button per code, current selection highlighted. */
+function paintOptGrid(sel, labels, current, onPick) {
+  const host = $(sel);
+  host.innerHTML = Object.entries(labels).map(([code, label]) =>
+    `<button type="button" data-code="${code}" class="${code === current ? 'on' : ''}">${escapeHtml(label)}</button>`
+  ).join('');
+  $$(sel + ' button').forEach(b => {
+    b.addEventListener('click', () => onPick(b.dataset.code));
+  });
+}
+
+/** Recompute the live TSS readout from the current draft. */
+function recalcModalTSS() {
+  const dur = Number(modalDraft.estimated.duration_min) || 0;
+  const tss = estimateTSS(dur, modalDraft.estimated.intensity);
+  modalDraft.estimated.tss = tss;
+  $('#unp-tss-num').textContent = tss > 0 ? tss : '--';
+  $('#unp-tss-bucket').textContent = tss > 0 ? tssBucketLabel(tssBucket(tss)) : 'enter duration + intensity';
+}
+
+/** Validate the form draft. Returns null if valid, or a message. */
+function validateModalDraft() {
+  if (!modalDraft.date) return 'Date is required.';
+  const dur = Number(modalDraft.estimated.duration_min);
+  if (!dur || dur <= 0) return 'Duration is required.';
+  return null;
+}
+
+/** Paint the impact-preview view from the current draft's ripple. */
+function paintModalPreview() {
+  if (!modalDraft.ripple) {
+    modalDraft.ripple = { ...computeRipple(modalDraft, state.plan), state: 'preview' };
+  }
+  const note = modalDraft.ripple.coachingNote;
+  $('#unp-preview-note').innerHTML =
+    '<div class="from">FIELD TRAINING</div>' + escapeHtml(note);
+
+  const host = $('#unp-preview-changes');
+  const changes = modalDraft.ripple.changes || [];
+  if (!changes.length) {
+    host.innerHTML = '<div class="small">No prescribed days affected — light bonus activity.</div>';
+    return;
+  }
+  host.innerHTML = changes.map(c => `
+    <div class="impact-change">
+      <div class="head">
+        <span class="ic-day">DAY ${c.day}</span>
+        <span class="kind ${c.kind}">${c.kind.replace(/_/g, ' ')}</span>
+      </div>
+      <div class="ba">
+        <div class="col">
+          <strong>${escapeHtml(c.before?.title || '—')}</strong>
+          <span class="meta">${c.before?.duration_min || 0}min · ${escapeHtml(c.before?.target_intensity || '—')}</span>
+        </div>
+        <div class="arrow">→</div>
+        <div class="col">
+          <strong>${escapeHtml(c.after?.title || c.before?.title || '—')}</strong>
+          <span class="meta">${c.after?.duration_min || c.before?.duration_min || 0}min · ${escapeHtml(c.after?.target_intensity || c.before?.target_intensity || '—')}</span>
+        </div>
+      </div>
+      <div class="reason">${escapeHtml(c.reason || '')}</div>
+    </div>
+  `).join('');
+}
+
+/** Submit the form view → compute ripple → switch to preview view. */
+function submitModalForm() {
+  const err = validateModalDraft();
+  if (err) { toast(err); return; }
+  modalDraft.ripple = { ...computeRipple(modalDraft, state.plan), state: 'preview' };
+  paintModalPreview();
+  showModalView('preview');
+}
+
+/** Persist with ripple state='applied' and close. */
+function applyModalRipple() {
+  if (!modalDraft.ripple) modalDraft.ripple = { ...computeRipple(modalDraft, state.plan), state: 'preview' };
+  modalDraft.ripple.state = 'applied';
+  modalDraft.state = 'flagged';
+  modalDraft.flagged_at = modalDraft.flagged_at || new Date().toISOString();
+  saveUnplanned(modalDraft);
+  toast('Plan adjustments applied');
+  closeUnplannedModal();
+  renderAll();
+}
+
+/** Persist with ripple state='rejected' and close. */
+function rejectModalRipple() {
+  if (!modalDraft.ripple) modalDraft.ripple = { changes: [], coachingNote: '', state: 'rejected' };
+  modalDraft.ripple.state = 'rejected';
+  modalDraft.state = 'flagged';  // still flagged so the activity can be logged later
+  modalDraft.flagged_at = modalDraft.flagged_at || new Date().toISOString();
+  saveUnplanned(modalDraft);
+  toast('Original plan kept — flag saved for logging');
+  closeUnplannedModal();
+  renderAll();
+}
+
+/** Render the Check-In banner state (button vs flagged-summary list). */
+function renderUnplannedBanner() {
+  const today = state.today;
+  // Show flags for today + next 6 days that haven't been logged yet.
+  const horizon = addDaysISO(today, 6);
+  const all = (load(K.unplanned, []) || [])
+    .filter(u => u.date >= today && u.date <= horizon && u.state !== 'logged');
+
+  const host = $('#unplanned-summary-host');
+  if (!all.length) { host.innerHTML = ''; return; }
+
+  host.innerHTML = all.map(u => {
+    const applied = u.ripple?.state === 'applied';
+    const stateLabel = applied ? 'APPLIED' : (u.ripple?.state === 'rejected' ? 'PLAN UNCHANGED' : 'FLAGGED');
+    const badgeCls = applied ? 'field' : '';
+    return `
+      <div class="unplanned-summary" data-unplanned-id="${u.id}">
+        <div class="row1">
+          <span class="when">${fmtDate(u.date).toUpperCase()}</span>
+          <span class="badge ${badgeCls}">${stateLabel}</span>
+        </div>
+        <div class="small">${escapeHtml(activityTypeLabel(u.type))} · ${u.estimated.duration_min} min · ${escapeHtml(intensityLabel(u.estimated.intensity))} · est TSS ${u.estimated.tss}</div>
+        <div class="gap"></div>
+        <button class="btn ghost" data-review-unplanned="${u.id}">Review${applied ? '' : ' & Decide'}</button>
+      </div>
+    `;
+  }).join('');
+
+  $$('#unplanned-summary-host [data-review-unplanned]').forEach(b => {
+    b.addEventListener('click', () => openUnplannedModalForReview(b.dataset.reviewUnplanned));
+  });
+}
+
+// ---- Data-screen segmented toggle ------------------------------------------
+
+/** Switch the Data screen between Scheduled and Unplanned forms. */
+function setDataMode(mode) {
+  $('#seg-scheduled').classList.toggle('on', mode === 'scheduled');
+  $('#seg-unplanned').classList.toggle('on', mode === 'unplanned');
+  $('#data-scheduled-host').style.display = mode === 'scheduled' ? '' : 'none';
+  $('#data-unplanned-host').style.display = mode === 'unplanned' ? '' : 'none';
+  if (mode === 'unplanned') populateUnplannedFlagSelect();
+}
+
+/** Populate the "tied to flag" select with available flagged records. */
+function populateUnplannedFlagSelect() {
+  const sel = $('#up-flag-link');
+  const all = (load(K.unplanned, []) || []).filter(u => u.state === 'flagged');
+  sel.innerHTML = '<option value="">— New, not pre-flagged —</option>' + all.map(u =>
+    `<option value="${u.id}">${u.date} · ${escapeHtml(activityTypeLabel(u.type))}</option>`
+  ).join('');
+  $('#up-date').value = state.today;
+  // Render flag list
+  const list = $('#up-flag-list');
+  if (!all.length) {
+    list.innerHTML = 'No flagged activities yet.';
+    return;
+  }
+  list.innerHTML = all.map(u => `
+    <div class="log-row">
+      <span class="ldate">${fmtDate(u.date).split(',')[0]}</span>
+      <span>${escapeHtml(activityTypeLabel(u.type))} · ${u.estimated.duration_min}min · TSS ${u.estimated.tss}</span>
+      <span class="small">${u.ripple?.state || 'preview'}</span>
+    </div>
+  `).join('');
+}
+
+/** Save an unplanned-activity log entry (post-ride). */
+function saveUnplannedLog() {
+  const linkId = $('#up-flag-link').value || null;
+  const date   = $('#up-date').value || state.today;
+  const wasPlanned = $('#up-was-planned').checked;
+  const session = {
+    date,
+    day: null,
+    avg_power_w: +$('#up-power').value || null,
+    np_w:        +$('#up-np').value    || null,
+    avg_hr:      +$('#up-hr').value    || null,
+    avg_cadence: +$('#up-cad').value   || null,
+    duration_min:+$('#up-dur').value   || null,
+    distance_mi: +$('#up-dist').value  || null,
+    rpe:         +$('#up-rpe').value   || null,
+    fueling_notes: $('#up-fueling').value || '',
+    notes:       $('#up-notes').value  || '',
+    activity_type: $('#up-type').value,
+    planned: wasPlanned,
+    source: 'unplanned-log',
+    unplanned_id: linkId,
+  };
+  // Append to sessions log
+  const arr = load(K.sessions, []);
+  arr.push(session);
+  save(K.sessions, arr);
+
+  // If linked to a flag, mark that flag as 'logged' and store the actuals.
+  if (linkId) {
+    const rec = getUnplannedById(linkId);
+    if (rec) {
+      rec.state = 'logged';
+      rec.actual = {
+        duration_min: session.duration_min,
+        distance_mi:  session.distance_mi,
+        avg_power_w:  session.avg_power_w,
+        np_w:         session.np_w,
+        avg_hr:       session.avg_hr,
+        avg_cadence:  session.avg_cadence,
+        rpe:          session.rpe,
+        fueling_notes:session.fueling_notes,
+        notes:        session.notes,
+        planned:      session.planned,
+      };
+      saveUnplanned(rec);
+    }
+  }
+
+  toast('Unplanned activity logged');
+  // clear form
+  ['up-power','up-np','up-hr','up-cad','up-dur','up-dist','up-fueling','up-notes'].forEach(id => $('#'+id).value = '');
+  $('#up-was-planned').checked = false;
+  $('#up-rpe').value = 6; $('#up-rpe-v').textContent = '6';
+  $('#up-flag-link').value = '';
+  populateUnplannedFlagSelect();
+  renderLog();
 }
 
 // ---------------------------------------------------------------------------
@@ -1041,6 +1727,8 @@ function renderCheckIn() {
     $('#mood-gate').classList.remove('muted');
     $('#mood-gate').innerHTML = `<div class="from">MOOD-GATED · ${r.band.toUpperCase()}</div>${escapeHtml(moodGatedGuidance(r.band, session, state.profile))}`;
   }
+
+  renderUnplannedBanner();
 }
 
 /**
@@ -1098,17 +1786,27 @@ function renderPlan() {
   $('#block-day').textContent = todaySess ? todaySess.day : '—';
   $('#block-phase').textContent = todaySess ? `P${todaySess.phase}` : '—';
 
-  list.innerHTML = sessions.map(s => `
-    <div class="plan-day ${s.date === state.today ? 'today' : ''} ${s.completed ? 'completed' : ''}" data-day="${s.day}">
+  const overlay = buildAdjustmentOverlay();
+  list.innerHTML = sessions.map(rawS => {
+    const s = effectiveSession(rawS, overlay);
+    const adj = s._adjustment;
+    const adjBadge = adj
+      ? (adj.kind === 'rhr_check'
+          ? '<span class="badge flag">RHR CHECK</span>'
+          : '<span class="badge field">ADJUSTED</span>')
+      : '';
+    return `
+    <div class="plan-day ${s.date === state.today ? 'today' : ''} ${s.completed ? 'completed' : ''} ${adj ? 'adjusted' : ''}" data-day="${s.day}">
       <div class="day-num">${s.day}<span class="date">${fmtDate(s.date).split(',')[0].toUpperCase()}</span></div>
       <div>
-        <div><span class="badge ${s.badge}">${s.badge}</span><span class="day-title">${escapeHtml(s.title)}</span></div>
+        <div>${adjBadge}<span class="badge ${s.badge}">${s.badge}</span><span class="day-title">${escapeHtml(s.title)}</span></div>
         <div class="day-meta">${s.duration_min ? s.duration_min+' min · ' : ''}${escapeHtml(s.target_intensity)}${s.target_cadence_rpm ? ' · '+escapeHtml(s.target_cadence_rpm)+' rpm' : ''}</div>
       </div>
       <div class="small">${s.completed ? '✓' : (s.date === state.today ? 'TODAY' : '')}</div>
     </div>
     <div class="detail" data-detail="${s.day}">
       <div class="small" style="margin-bottom:8px;">${escapeHtml(s.description)}</div>
+      ${adj ? `<div class="detail-row"><span class="k">Adjustment</span><span class="v">${escapeHtml(adj.reason || adj.kind)}</span></div>` : ''}
       ${s.rouvy_workout ? `<div class="detail-row"><span class="k">ROUVY Workout</span><span class="v">${escapeHtml(s.rouvy_workout)}</span></div>` : ''}
       ${s.rouvy_route ? `<div class="detail-row"><span class="k">ROUVY Route</span><span class="v">${escapeHtml(s.rouvy_route)}</span></div>` : ''}
       <div class="detail-row"><span class="k">Cadence Target</span><span class="v">${escapeHtml(s.target_cadence_rpm || '—')}</span></div>
@@ -1123,7 +1821,8 @@ function renderPlan() {
         <button class="btn ghost" data-prefill="${s.day}">Open in Data →</button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   $$('#plan-list .plan-day').forEach(el => {
     el.addEventListener('click', () => {
@@ -1694,6 +2393,55 @@ function wire() {
   $('#qe-date').value = state.today;
   const today = todaysSession();
   if (today) sel.value = String(today.day);
+
+  // ---- Unplanned activity wiring ----
+  $('#open-unplanned').addEventListener('click', openUnplannedModal);
+  $('#unp-close-1').addEventListener('click', closeUnplannedModal);
+  $('#unp-close-2').addEventListener('click', closeUnplannedModal);
+  $('#unp-submit').addEventListener('click', submitModalForm);
+  $('#unp-back').addEventListener('click', () => showModalView('form'));
+  $('#unp-apply').addEventListener('click', applyModalRipple);
+  $('#unp-reject').addEventListener('click', rejectModalRipple);
+
+  // Form input bindings — keep modalDraft in sync
+  $('#unp-date').addEventListener('input', (e) => { if (modalDraft) modalDraft.date = e.target.value; });
+  $('#unp-distance').addEventListener('input', (e) => { if (modalDraft) modalDraft.estimated.distance = e.target.value; });
+  $('#unp-duration').addEventListener('input', (e) => {
+    if (!modalDraft) return;
+    modalDraft.estimated.duration_min = e.target.value;
+    recalcModalTSS();
+  });
+  $('#unp-notes').addEventListener('input', (e) => { if (modalDraft) modalDraft.notes = e.target.value; });
+  $$('#unplanned-modal .unit-toggle button').forEach(b => {
+    b.addEventListener('click', () => {
+      if (!modalDraft) return;
+      modalDraft.estimated.distance_unit = b.dataset.unit;
+      $$('#unplanned-modal .unit-toggle button').forEach(x => x.classList.toggle('on', x === b));
+    });
+  });
+
+  // Click outside modal content closes it
+  $('#unplanned-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'unplanned-modal') closeUnplannedModal();
+  });
+
+  // ---- Data-screen segmented toggle ----
+  $('#seg-scheduled').addEventListener('click', () => setDataMode('scheduled'));
+  $('#seg-unplanned').addEventListener('click', () => setDataMode('unplanned'));
+  $('#up-rpe').addEventListener('input', (e) => { $('#up-rpe-v').textContent = e.target.value; });
+  $('#up-save').addEventListener('click', saveUnplannedLog);
+  $('#up-flag-link').addEventListener('change', (e) => {
+    const id = e.target.value;
+    if (!id) return;
+    const rec = getUnplannedById(id);
+    if (!rec) return;
+    $('#up-date').value = rec.date;
+    $('#up-type').value = rec.type;
+    $('#up-dur').value = rec.estimated.duration_min || '';
+    if (rec.estimated.distance && rec.estimated.distance_unit === 'mi') {
+      $('#up-dist').value = rec.estimated.distance;
+    }
+  });
 }
 
 /**
@@ -1731,6 +2479,42 @@ function bumpWater(delta) {
 // sessions and the green check-in so the user lands on a populated app
 // instead of an empty shell. We never overwrite existing data.
 // ---------------------------------------------------------------------------
+
+/**
+ * Seed an example unplanned-activity flag for tomorrow's group ride.
+ *
+ * Per the feature spec, this gives Chris a pre-populated example to review
+ * before tomorrow morning. Independent of `seedIfEmpty` (which only fires
+ * on first launch) — this seeds whenever the unplanned list is empty, so
+ * the example appears even if sessions are already populated from Day 1.
+ *
+ * The flag is created in 'preview' state — the user must open the modal
+ * and approve before the ripple is applied to the plan.
+ */
+function seedUnplannedExample() {
+  const arr = load(K.unplanned, []);
+  if (arr.length) return;
+  const draft = {
+    id: 'unp-seed-tomorrow-group',
+    date: addDaysISO(state.today, 1),
+    flagged_at: new Date().toISOString(),
+    state: 'flagged',
+    type: 'group_outdoor',
+    estimated: {
+      distance: 62,
+      distance_unit: 'mi',
+      duration_min: 210,
+      intensity: 'hard',
+      time_of_day: 'morning',
+      tss: estimateTSS(210, 'hard'),
+    },
+    notes: '100 km outdoor group ride. Pace unknown — expect surges, regrouping, and accelerations on punchy sections.',
+    actual: null,
+    ripple: null,
+  };
+  draft.ripple = { ...computeRipple(draft, state.plan), state: 'preview' };
+  save(K.unplanned, [draft]);
+}
 
 /**
  * Seed Day 1 (2026-05-07) ride sessions + check-in if storage is empty.
@@ -1800,6 +2584,7 @@ async function boot() {
   }
   applyCompletionOverlay();
   seedIfEmpty();
+  seedUnplannedExample();
   wire();
   renderAll();
 

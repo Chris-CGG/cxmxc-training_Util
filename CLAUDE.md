@@ -23,6 +23,8 @@ The app is offline-first, installable on Android, and reads three JSON files in 
 - **Stability Score watches for the burst-crash early warning pattern across 3+ days.** A single yellow day is not a flag. Three consecutive yellows or any red is.
 - Feedback is **direct and honest, but filtered through the mood gate**. Green day: tactical and pushing. Yellow day: cautious, options-based. Red day: protective, recovery-first, rest is the prescription.
 - Never frame rest as failure. The plan has rest days for a reason. The work happens during recovery.
+- **Unplanned rides are "field training" or "bonus load"** — never "disruptions" or "extra workouts". Outdoor group rides specifically are **"peloton simulation opportunities"** (they are exactly the load Tulsa demands).
+- **Recovery days inserted by ripple effect are "protection days"** — never "rest days". The protection-day framing makes the inserted recovery feel like an active choice, not a setback.
 
 ## The 20-day block (2026-05-07 to 2026-05-26)
 
@@ -73,6 +75,7 @@ Source of truth: `src/data/training-plan.json`. Do not paraphrase it from memory
 /src/engine/stability.js        — stability score + burst-crash pattern detection
 /src/engine/adaptation.js       — mood-gated guidance + structured session adaptations
 /src/engine/ai-coach.js         — Anthropic API wrapper (browser-direct)
+/src/engine/unplanned.js        — unplanned-activity TSS + ripple + coaching note
 /src/components/                — empty placeholders for v2 component split
 /src/styles/                    — empty placeholder for v2 CSS extraction
 ```
@@ -172,6 +175,49 @@ Single root object with two parallel arrays:
 Invariants:
 - Every `name` referenced from `training-plan.json` (`rouvy_workout`, `rouvy_route`) appears in this file.
 - `used_in_plan_days` arrays stay aligned with `training-plan.json` whenever a session references a new route.
+
+## Local state schemas (localStorage `cxmxc.*`)
+
+User state lives in localStorage under the `cxmxc.*` prefix. The shell owns reads/writes; engine modules are pure and never touch localStorage directly. v2 will mirror these keys to Supabase, so don't rename them casually.
+
+### `cxmxc.unplanned`
+
+Array of unplanned-activity records, oldest first. Drives the "Field Training" feature (banner on Check-In, modal flow, Data screen toggle, plan adjustment overlay).
+
+Lifecycle states (the `state` field):
+- `flagged` — pre-ride flag exists. `ripple.state` is independently `preview`, `applied`, or `rejected`.
+- `logged` — post-ride; `actual` filled in.
+- `ignored` — flag dismissed without applying or logging.
+
+Each record:
+- `id` — string, stable.
+- `date` — `YYYY-MM-DD` when the activity will happen / happened.
+- `flagged_at` — ISO timestamp.
+- `state` — `flagged | logged | ignored`.
+- `type` — one of `group_outdoor | solo_outdoor | mtb_gravel | race | cross_training | other`.
+- `estimated` — `{ distance, distance_unit ('mi'|'km'), duration_min, intensity ('easy'|'moderate'|'hard'|'race_pace'), time_of_day ('morning'|'midday'|'evening'), tss }`.
+- `notes` — free text.
+- `actual` — null pre-ride, then `{ duration_min, distance_mi, avg_power_w, np_w, avg_hr, avg_cadence, rpe, fueling_notes, notes, planned }`.
+- `ripple` — `{ state ('preview'|'applied'|'rejected'), changes: [{ day, kind, before, after, reason, flag? }], coachingNote }`. Produced by `unplanned.js#computeRipple`. Only when `ripple.state === 'applied'` does the per-day overlay show up on the Plan screen.
+
+Ripple change `kind` values:
+- `replace` — the activity day's prescription is absorbed by the field session.
+- `downgrade` — moderate-bucket follow-up day; intensity dropped to easy end of range.
+- `protection` — high/extreme-bucket follow-up day converted to a 45-min recovery spin.
+- `buffer_absorbed` — the target day is already rest; no override applied, just a note.
+- `rhr_check` — assess-bucket follow-up day; prescription kept, flagged for an RHR check the morning of.
+
+Plan-screen rendering: the engine never mutates the loaded plan. Instead, `effectiveSession()` in the shell merges any `applied` ripple onto a session at render time. This keeps `training-plan.json` pristine and lets a `rejected` decision revert with a single state flip.
+
+### Other `cxmxc.*` keys
+
+- `cxmxc.theme` — `'dark' | 'light'`.
+- `cxmxc.apiKey` — Anthropic API key, on-device only. Never sent to any non-Anthropic origin.
+- `cxmxc.checkins` — daily check-ins (one per date).
+- `cxmxc.log` — `{ 'YYYY-MM-DD': { water_oz, supplements: [...], notes } }`.
+- `cxmxc.supplements` — persistent supplement definitions.
+- `cxmxc.sessions` — logged ride sessions, oldest first.
+- `cxmxc.completed` — per-day completion overlay for the plan (kept separate so the JSON stays pristine).
 
 ## Instructions for future Claude Code sessions
 
