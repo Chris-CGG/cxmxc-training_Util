@@ -721,11 +721,62 @@
      stats. The capture/pick buttons trigger hidden file inputs; the
      preview uses object URLs that we revoke after use.
      ============================================================= */
+  /* Three full-width stacked action buttons. Label + icon are wrapped
+     in spans so the icon can grow on smaller viewports without stretching
+     the label, and so the button can grow taller without the icon
+     centering badly against the text baseline. */
   .photo-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
-    margin-top: 4px;
+    margin-top: 6px;
+  }
+  .photo-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 16px;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+  }
+  .photo-action-icon { font-size: 22px; line-height: 1; }
+  .photo-action-label { font-family: 'DM Mono', ui-monospace, monospace; }
+
+  /* Drag-and-drop zone — desktop only. The @media query at the bottom
+     of this block scopes it to fine-pointer devices (mouse / trackpad)
+     so it never appears on phones or tablets where drag-drop doesn't
+     apply. */
+  .photo-dropzone {
+    display: none;
+    margin-top: 12px;
+    padding: 22px 14px;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    text-align: center;
+    color: var(--fg-dim);
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+  }
+  .photo-dropzone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .photo-dropzone-icon {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .photo-dropzone-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .photo-dropzone { display: block; }
   }
   .photo-preview {
     margin-top: 12px;
@@ -1196,8 +1247,24 @@
           <input type="file" accept="image/*"                       id="photo-input-gallery" hidden>
 
           <div class="photo-actions">
-            <button class="btn ghost" id="photo-take">📷 Take Photo</button>
-            <button class="btn ghost" id="photo-pick">🖼️ Choose from Gallery</button>
+            <button class="btn ghost photo-action-btn" id="photo-take">
+              <span class="photo-action-icon">📷</span>
+              <span class="photo-action-label">Take Photo Now</span>
+            </button>
+            <button class="btn ghost photo-action-btn" id="photo-pick">
+              <span class="photo-action-icon">🖼️</span>
+              <span class="photo-action-label">Upload from Gallery</span>
+            </button>
+            <button class="btn ghost photo-action-btn" id="photo-browse" hidden>
+              <span class="photo-action-icon">📸</span>
+              <span class="photo-action-label">Browse Files</span>
+            </button>
+          </div>
+
+          <div class="photo-dropzone" id="photo-dropzone">
+            <div class="photo-dropzone-icon">⬇</div>
+            <div class="photo-dropzone-label">Or drag a screenshot here</div>
+            <div class="small">ROUVY · Strava · Garmin · Wahoo · Any cycling computer or app screen</div>
           </div>
 
           <div id="photo-preview" class="photo-preview" style="display:none;">
@@ -2354,6 +2421,37 @@ function clearPhoto() {
   $('#photo-preview').style.display = 'none';
   $('#photo-status').style.display = 'none';
   $('#photo-results').style.display = 'none';
+}
+
+/**
+ * Open the desktop File System Access picker (`showOpenFilePicker`) and
+ * load the selected image into photoState. Only wired up when the API
+ * is available — see the gate in `wire()`.
+ *
+ * The original feature spec asked for a "last 4 from camera roll" surface,
+ * but no browser API exposes the camera roll like that. This is the best
+ * web-platform equivalent: a richer system file picker than the hidden
+ * file-input fallback, with image-type filtering applied.
+ *
+ * Cancellation throws AbortError; we swallow that silently. Other errors
+ * surface as a toast.
+ */
+async function browseForPhoto() {
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{
+        description: 'Image',
+        accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.heic', '.heif'] },
+      }],
+      excludeAcceptAllOption: false,
+      multiple: false,
+    });
+    const file = await handle.getFile();
+    photoSetFile(file);
+  } catch (err) {
+    if (err && err.name === 'AbortError') return; // user cancelled — silent.
+    toast('Could not open file picker: ' + (err && err.message || err));
+  }
 }
 
 /**
@@ -3842,13 +3940,54 @@ function wire() {
   $('#seg-paste').addEventListener('click',  () => setDataMode('paste'));
   $('#seg-manual').addEventListener('click', () => setDataMode('manual'));
 
-  // ---- Photo tab — capture / pick / preview / clear ----
+  // ---- Photo tab — capture / pick / browse / drag-drop / preview / clear ----
   $('#photo-take').addEventListener('click', () => $('#photo-input-camera').click());
   $('#photo-pick').addEventListener('click', () => $('#photo-input-gallery').click());
   $('#photo-input-camera').addEventListener('change',  onPhotoFileChosen);
   $('#photo-input-gallery').addEventListener('change', onPhotoFileChosen);
   $('#photo-clear').addEventListener('click', clearPhoto);
   $('#photo-analyze').addEventListener('click', analyzePhoto);
+
+  // Browse Files button — only revealed when the File System Access API is
+  // available (Chromium desktop; not Android Chrome, not iOS, not Firefox).
+  // The browser's "last 4 from camera roll" surface that the spec named
+  // doesn't actually exist as a web API; this gives a richer file picker
+  // on desktop where it does work, and stays hidden everywhere else.
+  if ('showOpenFilePicker' in window) {
+    const browseBtn = $('#photo-browse');
+    browseBtn.hidden = false;
+    browseBtn.addEventListener('click', browseForPhoto);
+  }
+
+  // Drag-and-drop zone — wired regardless of CSS visibility so a user
+  // who somehow drops onto a touch device's hidden zone still gets
+  // handled, but in practice this only fires on desktop.
+  const dz = $('#photo-dropzone');
+  ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    dz.classList.add('drag-over');
+  }));
+  ['dragleave', 'dragend'].forEach(ev => dz.addEventListener(ev, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    dz.classList.remove('drag-over');
+  }));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    dz.classList.remove('drag-over');
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) return;
+    if (!file.type || !file.type.startsWith('image/')) {
+      toast('Only image files (jpg / png / webp / heic).');
+      return;
+    }
+    photoSetFile(file);
+  });
+  // Prevent the page itself from navigating to a dropped file when the
+  // user misses the drop zone.
+  ['dragover', 'drop'].forEach(ev => window.addEventListener(ev, (e) => {
+    if (e.target.closest('#photo-dropzone')) return;
+    e.preventDefault();
+  }));
 
   // ---- Unplanned post-ride form (preserved, accessed via Check-In banner) ----
   $('#up-rpe').addEventListener('input', (e) => { $('#up-rpe-v').textContent = e.target.value; });
