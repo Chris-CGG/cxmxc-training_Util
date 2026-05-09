@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Public / private athlete-profile split (pre-public-repo audit).** Identity, biometric, breathing-condition, and mental-health fields moved out of the committed `src/data/athlete-profile.json` and into a gitignored `src/data/athlete-private.json`. Committed `athlete-private.example.json` documents the shape for forks. The shell merges both at boot via `mergePrivateProfile()`; without the private file the public profile is used as-is and identity fields render as `—`. `src/engine/ai-coach.js` `buildSystemPrompt` and `askCoach` now require a `profile` argument — closes a long-standing leak of CLAUDE.md rule 5 (the prompt was hardcoding the athlete's name + medical conditions). Engine smoke tests grew from 25 to 28 (added: profile-required, identity-from-profile, conditional medical lines). Full audit and move-list in `docs/SECURITY.md`.
+
 ## [0.2.1] — 2026-05-09 — QA fixes
 
 Three QA bugs filed against v0.2.0 fixed in order, each in its own commit. No new features; tightening of existing surfaces.

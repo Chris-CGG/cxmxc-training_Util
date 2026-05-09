@@ -86,6 +86,12 @@ Source of truth: `src/data/training-plan.json`. Do not paraphrase it from memory
 
 The three JSON files in `src/data/` are the only place athlete-specific values live. Everything else in the app reads them at runtime — there are no FTP, zone, threshold, or goal numbers hardcoded in JS or HTML (CLAUDE.md rule 5). This section documents every top-level key. Per dev rule 1, two of these files are authoritative and require explicit permission to modify.
 
+### Public / private split
+
+**Identity, biometric, and medical fields are not in the public file.** They live in a gitignored `src/data/athlete-private.json`. The shell merges the two at boot via `mergePrivateProfile()` so the in-memory `state.profile` carries the full picture; the public repo carries only fitness numbers, equipment brands, goals, thresholds, and zones. See `docs/SECURITY.md` for the audit and the move list.
+
+A committed `src/data/athlete-private.example.json` documents the structure of the private file. Forks copy it to `athlete-private.json` and fill in their values; without it the app still runs (the public profile is used as-is and identity fields render as `—`).
+
 ### `src/data/athlete-profile.json` *(authoritative — do not modify silently)*
 
 Single root object. Top-level keys:

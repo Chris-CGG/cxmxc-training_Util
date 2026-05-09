@@ -1,7 +1,7 @@
 {
   "name": "CxMxC Training",
   "short_name": "CxMxC",
-  "description": "Tulsa Tough Ace Peloton Fondo training PWA for Chris Clarke-Gonzalez.",
+  "description": "Single-athlete training PWA — mood-gated check-in, 20-day block view, AI coach, photo-extracted ride data.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

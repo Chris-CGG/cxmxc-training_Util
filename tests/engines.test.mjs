@@ -199,13 +199,35 @@ test('adaptation: adaptForPattern returns null when no flag is tripped', () => {
 // ai-coach.js
 // ---------------------------------------------------------------------------
 
-test('ai-coach: buildSystemPrompt requires today checkin (CLAUDE.md rule 10)', () => {
-  assert.throws(() => buildSystemPrompt({ todayCheckin: null }), /mood gate/);
-  assert.throws(() => buildSystemPrompt({ todayCheckin: {} }), /mood gate/);
+// Minimal profile fixture for the system-prompt tests. Identity values
+// are placeholders — the real ones live in athlete-private.json (gitignored).
+const profileFixture = {
+  athlete: { name: 'Tester', username: 'tester', age: 30, weight_kg: 75 },
+  baseline: { ftp_current: 220, natural_cadence_uncoached: 80, cadence_ceiling_proven: 110 },
+  background: {
+    primary_discipline: 'cyclist',
+    road_experience: 'group rides',
+    breathing: { allergies: false },
+    mental_health: {},
+  },
+  goals: [
+    { id: 'g1', name: 'Test Race', date: '2099-01-01', distance_miles: 50, priority: 1 },
+  ],
+};
+
+test('ai-coach: buildSystemPrompt requires profile', () => {
+  assert.throws(() => buildSystemPrompt({ profile: null, todayCheckin: { band: 'green', score: 80 } }),
+                /profile/);
 });
 
-test('ai-coach: buildSystemPrompt embeds band and score', () => {
+test('ai-coach: buildSystemPrompt requires today checkin (CLAUDE.md rule 10)', () => {
+  assert.throws(() => buildSystemPrompt({ profile: profileFixture, todayCheckin: null }), /mood gate/);
+  assert.throws(() => buildSystemPrompt({ profile: profileFixture, todayCheckin: {} }), /mood gate/);
+});
+
+test('ai-coach: buildSystemPrompt embeds band, score, and language rules', () => {
   const s = buildSystemPrompt({
+    profile: profileFixture,
     todayCheckin: { band: 'green', score: 80 },
     session: { title: 'X', description: 'Y' },
     recentLogText: '',
@@ -215,6 +237,52 @@ test('ai-coach: buildSystemPrompt embeds band and score', () => {
   // Language rules baked in:
   assert.match(s, /nervous system load/);
   assert.match(s, /carrying weight/);
+});
+
+test('ai-coach: buildSystemPrompt reads identity from profile (no hardcoded names)', () => {
+  const s = buildSystemPrompt({
+    profile: profileFixture,
+    todayCheckin: { band: 'green', score: 80 },
+    session: null,
+    recentLogText: '',
+  });
+  // Profile values flow through verbatim — fixture name + FTP appear.
+  assert.match(s, /Tester/);
+  assert.match(s, /220 W/);
+  // Regression guard against the pre-audit v0.1.0 hardcoded athlete-identity
+  // line ("You are <name>'s expert cycling coach. Athlete: <name>, ...").
+  // The username/name in the rendered prompt should always be the fixture's,
+  // not any value baked into the module source.
+  // Case-insensitive: username "tester" + name "Tester" both flow into the prompt.
+  const fixtureNameCount = (s.match(/tester/gi) || []).length;
+  assert.ok(fixtureNameCount >= 2, 'expected fixture name to appear at least twice (username + Athlete: line)');
+});
+
+test('ai-coach: medical-condition lines only appear when flags are set', () => {
+  const noConditions = buildSystemPrompt({
+    profile: profileFixture,
+    todayCheckin: { band: 'green', score: 80 },
+    session: null,
+    recentLogText: '',
+  });
+  assert.doesNotMatch(noConditions, /Septal deviation/);
+  assert.doesNotMatch(noConditions, /panic attacks/i);
+
+  const withConditions = buildSystemPrompt({
+    profile: {
+      ...profileFixture,
+      background: {
+        ...profileFixture.background,
+        breathing: { condition: 'septal_deviation', allergies: true },
+        mental_health: { panic_attacks_history: true, burst_crash_pattern: true },
+      },
+    },
+    todayCheckin: { band: 'green', score: 80 },
+    session: null,
+    recentLogText: '',
+  });
+  assert.match(withConditions, /Septal deviation/);
+  assert.match(withConditions, /panic attacks/i);
 });
 
 test('ai-coach: summarizeRecentSessions handles empty input', () => {

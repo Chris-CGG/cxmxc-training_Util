@@ -1,0 +1,34 @@
+{
+  "_comment": "Copy this file to athlete-private.json (gitignored) and fill in your real values. The shell merges this onto the public athlete-profile.json at boot. Any field can be omitted — the merge only overlays what you provide.",
+
+  "athlete": {
+    "name": "Your Full Name",
+    "username": "yourhandle",
+    "dob": "YYYY-MM-DD",
+    "age": 0,
+    "gender": "unspecified",
+    "weight_lb": 0,
+    "weight_kg": 0,
+    "height_in": 0,
+    "height_cm": 0
+  },
+  "equipment": {
+    "hr_monitor": "model + serial"
+  },
+  "background": {
+    "breathing": {
+      "_comment": "Document any breathing conditions that affect training. Omit the section entirely if none apply.",
+      "condition": null,
+      "allergies": false,
+      "pollen_sensitivity": false,
+      "intake_magnets": false
+    },
+    "mental_health": {
+      "_comment": "Mental state is treated as physiology in this app. Set the flags that apply to you. Omit entirely if none.",
+      "panic_attacks_history": false,
+      "burst_crash_pattern": false,
+      "heat_sensitivity": false,
+      "stress_ftp_correlation": false
+    }
+  }
+}

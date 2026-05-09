@@ -2,3 +2,8 @@
 node_modules/
 .DS_Store
 *.log
+
+# Personal-health-adjacent identity + medical fields live here, gitignored
+# by design. The committed `athlete-private.example.json` shows the shape;
+# each device fills in its own real values. See docs/SECURITY.md.
+src/data/athlete-private.json

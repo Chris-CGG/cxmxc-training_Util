@@ -1873,21 +1873,54 @@ const state = {
 // ---------------------------------------------------------------------------
 
 /**
- * Fetch the three authoritative JSON files in parallel and stash them on
- * `state`. Throws if any file fails to load — boot catches that and shows
- * a hint about file:// vs http://.
+ * Fetch the four runtime files in parallel and stash them on `state`.
  *
+ * Three are required (athlete-profile.json, training-plan.json,
+ * rouvy-routes.json). The fourth — athlete-private.json — is optional
+ * and gitignored: it carries identity + biometric + medical fields
+ * that should not be in a public repo. If present, it is deep-merged
+ * onto the public profile; if absent (a fresh fork, no private file
+ * created yet), the public profile is used as-is.
+ *
+ * Throws if any of the three required files fails to load.
  * @returns {Promise<void>}
  */
 async function loadData() {
-  const [p, pl, r] = await Promise.all([
+  const [p, pl, r, priv] = await Promise.all([
     fetch('src/data/athlete-profile.json').then(r => r.json()),
     fetch('src/data/training-plan.json').then(r => r.json()),
     fetch('src/data/rouvy-routes.json').then(r => r.json()),
+    fetch('src/data/athlete-private.json').then(r => r.ok ? r.json() : null).catch(() => null),
   ]);
-  state.profile = p;
+  state.profile = priv ? mergePrivateProfile(p, priv) : p;
   state.plan = pl;
   state.routes = r;
+}
+
+/**
+ * Deep-merge the gitignored athlete-private.json onto the public
+ * athlete-profile.json. Only the named branches the private file is
+ * allowed to touch are merged: athlete (identity), equipment.hr_monitor,
+ * background.breathing, background.mental_health.
+ *
+ * Pure: returns a new object, does not mutate inputs.
+ *
+ * @param {object} pub the public athlete-profile.json contents
+ * @param {object} priv the private athlete-private.json contents
+ * @returns {object} merged profile
+ */
+function mergePrivateProfile(pub, priv) {
+  if (!priv) return pub;
+  return {
+    ...pub,
+    athlete: { ...pub.athlete, ...(priv.athlete || {}) },
+    equipment: { ...pub.equipment, ...(priv.equipment || {}) },
+    background: {
+      ...pub.background,
+      breathing:    { ...(pub.background?.breathing    || {}), ...(priv.background?.breathing    || {}) },
+      mental_health:{ ...(pub.background?.mental_health || {}), ...(priv.background?.mental_health || {}) },
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -3218,20 +3251,24 @@ function renderLog() {
  */
 function renderProfile() {
   const p = state.profile;
+  // `or` helper: render a value or "—" if it's null/undefined. Public-only
+  // forks (no athlete-private.json) get the dash; merged profiles get the
+  // real values.
+  const or = (v, suffix = '') => v == null || v === '' ? '—' : escapeHtml(String(v)) + (suffix ? ' ' + suffix : '');
   $('#profile-version').textContent = `v${p.app_version}`;
   $('#profile-block').innerHTML = `
-    <div class="detail-row"><span class="k">Name</span><span class="v">${escapeHtml(p.athlete.name)} (${escapeHtml(p.athlete.username)})</span></div>
-    <div class="detail-row"><span class="k">Age</span><span class="v">${p.athlete.age}</span></div>
-    <div class="detail-row"><span class="k">Weight</span><span class="v">${p.athlete.weight_lb} lb / ${p.athlete.weight_kg} kg</span></div>
-    <div class="detail-row"><span class="k">Height</span><span class="v">${p.athlete.height_in}" / ${p.athlete.height_cm} cm</span></div>
-    <div class="detail-row"><span class="k">FTP Current</span><span class="v">${p.baseline.ftp_current} W</span></div>
-    <div class="detail-row"><span class="k">FTP Last Month</span><span class="v">${p.baseline.ftp_last_month} W</span></div>
-    <div class="detail-row"><span class="k">W/kg</span><span class="v">${p.baseline.wkg_current}</span></div>
-    <div class="detail-row"><span class="k">RHR Baseline</span><span class="v">${p.baseline.resting_hr_baseline}</span></div>
-    <div class="detail-row"><span class="k">Max HR Seen</span><span class="v">${p.baseline.max_hr_seen}</span></div>
-    <div class="detail-row"><span class="k">Natural Cadence</span><span class="v">${p.baseline.natural_cadence_uncoached} RPM</span></div>
-    <div class="detail-row"><span class="k">Cadence Ceiling</span><span class="v">${p.baseline.cadence_ceiling_proven} RPM</span></div>
-    <div class="detail-row"><span class="k">Trainer</span><span class="v">${escapeHtml(p.equipment.trainer)}</span></div>
+    <div class="detail-row"><span class="k">Name</span><span class="v">${or(p.athlete.name)} (${or(p.athlete.username)})</span></div>
+    <div class="detail-row"><span class="k">Age</span><span class="v">${or(p.athlete.age)}</span></div>
+    <div class="detail-row"><span class="k">Weight</span><span class="v">${or(p.athlete.weight_lb, 'lb')} / ${or(p.athlete.weight_kg, 'kg')}</span></div>
+    <div class="detail-row"><span class="k">Height</span><span class="v">${or(p.athlete.height_in, '"')} / ${or(p.athlete.height_cm, 'cm')}</span></div>
+    <div class="detail-row"><span class="k">FTP Current</span><span class="v">${or(p.baseline.ftp_current, 'W')}</span></div>
+    <div class="detail-row"><span class="k">FTP Last Month</span><span class="v">${or(p.baseline.ftp_last_month, 'W')}</span></div>
+    <div class="detail-row"><span class="k">W/kg</span><span class="v">${or(p.baseline.wkg_current)}</span></div>
+    <div class="detail-row"><span class="k">RHR Baseline</span><span class="v">${or(p.baseline.resting_hr_baseline)}</span></div>
+    <div class="detail-row"><span class="k">Max HR Seen</span><span class="v">${or(p.baseline.max_hr_seen)}</span></div>
+    <div class="detail-row"><span class="k">Natural Cadence</span><span class="v">${or(p.baseline.natural_cadence_uncoached, 'RPM')}</span></div>
+    <div class="detail-row"><span class="k">Cadence Ceiling</span><span class="v">${or(p.baseline.cadence_ceiling_proven, 'RPM')}</span></div>
+    <div class="detail-row"><span class="k">Trainer</span><span class="v">${or(p.equipment.trainer)}</span></div>
   `;
   $('#ftp-display').textContent = p.baseline.ftp_current;
   $('#zones-block').innerHTML = `
@@ -3877,6 +3914,7 @@ function wire() {
     const res = await askCoach({
       apiKey: localStorage.getItem(K.apiKey) || '',
       userPrompt: 'Look at today and recent sessions. Give one focused, mood-gated coaching message: what to do today, one specific number to watch, and one thing to ignore.',
+      profile: state.profile,
       todayCheckin,
       session: todaysSession(),
       recentLogText: summarizeRecentSessions(load(K.sessions, []), 5),

@@ -1,19 +1,19 @@
 {
   "athlete": {
-    "name": "Chris Clarke-Gonzalez",
-    "username": "CxMxC",
-    "dob": "1989-10-10",
-    "age": 36,
-    "gender": "male",
-    "weight_lb": 205,
-    "weight_kg": 93,
-    "height_in": 76,
-    "height_cm": 193,
+    "name": "Athlete",
+    "username": "athlete",
+    "dob": null,
+    "age": null,
+    "gender": null,
+    "weight_lb": null,
+    "weight_kg": null,
+    "height_in": null,
+    "height_cm": null,
     "frame_size_cm": 56
   },
   "equipment": {
     "trainer": "Wahoo KICKR 40DF",
-    "hr_monitor": "808S 0003814",
+    "hr_monitor": null,
     "road_bike": "Cannondale Synapse",
     "trainer_bike": "Scott Speedster (replace)",
     "gravel_bike": true,
@@ -39,19 +39,7 @@
     "primary_discipline": "fixed_gear_urban_crit",
     "road_experience": "group_rides_not_ace_pace",
     "mtb_experience": "learning_singletrack",
-    "crash_pattern": ["confidence", "technical_skills", "trail_reading"],
-    "breathing": {
-      "condition": "septal_deviation",
-      "allergies": true,
-      "pollen_sensitivity": true,
-      "intake_magnets": false
-    },
-    "mental_health": {
-      "panic_attacks_history": true,
-      "burst_crash_pattern": true,
-      "heat_sensitivity": true,
-      "stress_ftp_correlation": true
-    }
+    "crash_pattern": ["confidence", "technical_skills", "trail_reading"]
   },
   "thresholds": {
     "resting_hr_green": 65,
@@ -101,6 +89,6 @@
   "supplements": [],
   "water_target_oz": 100,
   "training_start": "2026-05-07",
-  "app_version": "0.1.0",
-  "last_updated": "2026-05-08"
+  "app_version": "0.2.1",
+  "last_updated": "2026-05-09"
 }

@@ -210,6 +210,44 @@ If any row shows errors or non-trivial warnings, file each one with reproduction
 
 ---
 
+## Public / private profile split (v0.2.2 audit, 2026-05-09)
+
+Before making the repository public, the athlete profile was audited for HIPAA-adjacent personal data and split into two files:
+
+- **`src/data/athlete-profile.json`** — public, committed. Contains fitness numbers (FTP, RHR, cadence, PRs), equipment brands, goals (Tulsa, EHOTS — public race info), thresholds, zones, supplements, water target, meta. Identity fields (`name`, `username`, `dob`, `age`, `gender`, `weight_lb`, `weight_kg`, `height_in`, `height_cm`) are present but set to `null` so the schema stays intact.
+- **`src/data/athlete-private.json`** — private, **gitignored** (`.gitignore` line 9). Carries identity, biometric, breathing condition, and mental-health flags. Each device fills in its own values.
+- **`src/data/athlete-private.example.json`** — committed template for forks.
+
+What moved to private (per the audit):
+
+| Branch | Field(s) moved | Reason |
+|---|---|---|
+| `athlete` | `name`, `username`, `dob`, `age`, `gender`, `weight_lb`, `weight_kg`, `height_in`, `height_cm` | PII + biometric data; HIPAA-adjacent in combination |
+| `equipment` | `hr_monitor` (model + serial) | Serial is a unique identifier |
+| `background.breathing` | entire block (`condition`, `allergies`, `pollen_sensitivity`, `intake_magnets`) | Medical conditions |
+| `background.mental_health` | entire block (`panic_attacks_history`, `burst_crash_pattern`, `heat_sensitivity`, `stress_ftp_correlation`) | Mental-health data — explicit PHI |
+
+What stayed public:
+- Fitness numbers (FTP 232 W, RHR 56, natural cadence 61 RPM, PRs). These are personal but not health-condition data and the app needs them at boot.
+- Equipment brands (Wahoo KICKR, Cannondale Synapse, Scott Speedster). HR-monitor *serial* moved; brand names did not.
+- Riding background (`primary_discipline`, `road_experience`, `mtb_experience`, `crash_pattern`). Skill history, not medical.
+- Goals (Tulsa Tough, EHOTS RGV — public race calendar info).
+- Thresholds, zones, supplements, water target, meta.
+
+How the merge works at runtime:
+- `index.html#loadData()` fetches both files in parallel; the private fetch swallows 404 and treats it as "no overrides".
+- `mergePrivateProfile(pub, priv)` deep-merges only the four named branches the private file is allowed to touch (`athlete`, `equipment.hr_monitor`, `background.breathing`, `background.mental_health`). Any other field in the private file is ignored — the merge is a allowlist, not free-form.
+- `state.profile` carries the merged result. The AI coach reads from `state.profile`; its system prompt is now parameterized (no hardcoded names or medical conditions in `src/engine/ai-coach.js`). Closes a long-standing leak of CLAUDE.md rule 5.
+- `service-worker.js` does NOT precache `athlete-private.json` — it's user-specific. Runtime fetch handler picks it up on first load, then caches like any other asset.
+
+Verified after the audit:
+```
+git grep -nE 'Chris Clarke-Gonzalez|808S 0003814|septal_deviation|panic_attacks_history' \
+  -- ':!docs/PDLC/CHANGELOG.md' ':!docs/PDLC/CXMXC_REFERENCE.md' ':!docs/DISCOVERY.md' \
+  ':!docs/architecture.md' ':!CLAUDE.md' ':!README.md' ':!docs/SECURITY.md'
+```
+No matches in code or in JSON. The four named-strings remain in the *prose* documentation files (CLAUDE.md, DISCOVERY.md, CXMXC_REFERENCE.md, the changelog) where they describe the project context — those are an open question for a separate decision before going public.
+
 ## Summary
 
 **Status: 7 pass, 2 documented gaps, 1 procedure pending verification.**

@@ -54,24 +54,74 @@ const DEFAULT_MAX_TOKENS = 700;
  * — CLAUDE.md rule 10 requires the band and score in every prompt, and
  * silently producing a coach call without them would erode the contract.
  *
+ * Personal-health-adjacent context (athlete name, weight, breathing condition,
+ * mental-health pattern flags) is read from `profile` at call time rather
+ * than hardcoded in this file. The public repo's athlete-profile.json holds
+ * only fitness numbers + goals; the gitignored athlete-private.json holds
+ * the identifying + medical fields. The shell merges them at boot. See
+ * docs/SECURITY.md.
+ *
  * @param {object} ctx
+ * @param {object} ctx.profile Merged athlete profile (public + private).
+ *   Required. The function looks up name, weight_kg, FTP, cadence, goals,
+ *   breathing condition, and mental-health flags from this object.
  * @param {{band:'green'|'yellow'|'red', score:number}} ctx.todayCheckin
  *   Today's check-in. Must contain band and score.
  * @param {object|null} ctx.session - Today's prescribed session, or null.
  * @param {string} ctx.recentLogText - One-line per-session digest from
  *   `summarizeRecentSessions`, or '' if none.
  * @returns {string} System prompt ready for the Messages API.
- * @throws {Error} If `todayCheckin.band` or `todayCheckin.score` is missing.
+ * @throws {Error} If `profile` is missing, or if `todayCheckin.band`
+ *   or `todayCheckin.score` is missing.
  */
-export function buildSystemPrompt({ todayCheckin, session, recentLogText }) {
+export function buildSystemPrompt({ profile, todayCheckin, session, recentLogText }) {
+  if (!profile) {
+    throw new Error('AI coach requires the athlete profile.');
+  }
   if (!todayCheckin || todayCheckin.band == null || todayCheckin.score == null) {
     throw new Error('AI coach requires today\'s mood gate state and stability score (CLAUDE.md rule 10).');
   }
-  return `You are CxMxC's expert cycling coach.
-Athlete: Chris Clarke-Gonzalez, 36, 93 kg, FTP 232 W. Fixed-gear urban crit background. Learning Ace-pace road peloton dynamics. Natural cadence 61 RPM (proven ceiling 111). Target: Tulsa Tough Ace Peloton Fondo 2026-06-06 (103 mi). Secondary: EHOTS RGV MTB 2026-07-05.
+
+  const a       = profile.athlete   || {};
+  const b       = profile.baseline  || {};
+  const bg      = profile.background || {};
+  const goals   = profile.goals     || [];
+  const breath  = bg.breathing      || {};
+  const mh      = bg.mental_health  || {};
+
+  const username      = a.username || 'the athlete';
+  const name          = a.name     || 'the athlete';
+  const age           = a.age      ?? '—';
+  const weightKg      = a.weight_kg ?? '—';
+  const ftp           = b.ftp_current ?? '—';
+  const cadenceNat    = b.natural_cadence_uncoached ?? '—';
+  const cadenceMax    = b.cadence_ceiling_proven    ?? '—';
+  const discipline    = bg.primary_discipline || 'cyclist';
+  const roadExp       = bg.road_experience    || 'cyclist';
+  const primary       = goals.find(g => g.priority === 1);
+  const secondary     = goals.find(g => g.priority === 2);
+
+  // Constraints assembled from the profile rather than baked into the
+  // prompt. Each entry is appended only when the relevant flag is set.
+  const constraints = [];
+  if (breath.condition === 'septal_deviation') constraints.push('- Septal deviation — affects airflow under high HR.');
+  if (breath.allergies || breath.pollen_sensitivity) constraints.push('- Allergies / pollen sensitivity — affects breathing under load.');
+  if (mh.panic_attacks_history) constraints.push('- History of panic attacks under high HR.');
+  if (mh.burst_crash_pattern)   constraints.push('- Burst-crash training cycle pattern tied to mental stress and heat — protect against compounding load.');
+  if (mh.heat_sensitivity)      constraints.push('- Heat sensitivity — race-day weather is a known stressor.');
+  if (mh.stress_ftp_correlation) constraints.push('- Stress-FTP correlation — life stress is training stress.');
+
+  const goalLine = primary
+    ? `Target: ${primary.name}${primary.date ? ' ' + primary.date : ''}${primary.distance_miles ? ' (' + primary.distance_miles + ' mi)' : ''}.`
+    : '';
+  const secondaryLine = secondary
+    ? `Secondary: ${secondary.name}${secondary.date ? ' ' + secondary.date : ''}.`
+    : '';
+
+  return `You are ${username}'s expert cycling coach.
+Athlete: ${name}, ${age}, ${weightKg} kg, FTP ${ftp} W. ${discipline} background. ${roadExp}. Natural cadence ${cadenceNat} RPM (proven ceiling ${cadenceMax}). ${goalLine} ${secondaryLine}
 Constraints to respect:
-- Septal deviation + pollen allergies — affects breathing under load.
-- History of panic attacks under high HR; burst-crash training cycles tied to mental stress and heat.
+${constraints.join('\n') || '- Listen to the athlete’s reported state and treat it as physiological data.'}
 - Treat mental state as physiological data — never as weakness.
 - Use the language: "nervous system load", "carrying weight", "the system needs to recover". Never "anxiety" or "stressed out".
 - Mood-gated tone: GREEN = tactical and pushing, YELLOW = options-based and cautious, RED = protective and recovery-first.
@@ -100,6 +150,9 @@ Be direct, concrete, and concise. Reference watts, RPM, HR. No platitudes.`;
  * @param {string} args.apiKey - Anthropic API key. Comes from localStorage in
  *   the shell; this module does not read storage itself.
  * @param {string} args.userPrompt - The user's question for the coach.
+ * @param {object} args.profile - Merged athlete profile (public + private).
+ *   Required. Used to assemble the system prompt with athlete-specific
+ *   context that is no longer hardcoded in source.
  * @param {{band:'green'|'yellow'|'red', score:number}|null} args.todayCheckin
  *   Required. If null, the call is refused before any network traffic.
  * @param {object|null} args.session - Today's prescribed session, or null.
@@ -108,9 +161,12 @@ Be direct, concrete, and concise. Reference watts, RPM, HR. No platitudes.`;
  * @param {number} [args.maxTokens=700] - Override max output tokens.
  * @returns {Promise<{ok:boolean, text:string}>}
  */
-export async function askCoach({ apiKey, userPrompt, todayCheckin, session, recentLogText, model = DEFAULT_MODEL, maxTokens = DEFAULT_MAX_TOKENS }) {
+export async function askCoach({ apiKey, userPrompt, profile, todayCheckin, session, recentLogText, model = DEFAULT_MODEL, maxTokens = DEFAULT_MAX_TOKENS }) {
   if (!apiKey) {
     return { ok: false, text: 'No API key saved. Add one in Profile → AI Coach.' };
+  }
+  if (!profile) {
+    return { ok: false, text: 'Athlete profile not loaded yet. Reload the app and try again.' };
   }
   if (!todayCheckin) {
     return { ok: false, text: 'Run today\'s check-in first. Coach requires the mood gate state and stability score.' };
@@ -118,7 +174,7 @@ export async function askCoach({ apiKey, userPrompt, todayCheckin, session, rece
 
   let system;
   try {
-    system = buildSystemPrompt({ todayCheckin, session, recentLogText });
+    system = buildSystemPrompt({ profile, todayCheckin, session, recentLogText });
   } catch (e) {
     return { ok: false, text: e.message };
   }
