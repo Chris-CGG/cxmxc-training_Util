@@ -1,0 +1,12 @@
+{
+  "name": "cxmxc-training",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Single-athlete training PWA for the Tulsa Tough Ace Peloton Fondo. See README.md and CLAUDE.md.",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "serve": "python3 -m http.server 8080",
+    "serve:lan": "python3 -m http.server 8080 --bind 0.0.0.0"
+  }
+}
