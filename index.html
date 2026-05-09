@@ -959,6 +959,87 @@
     50%      { background-position: 100% 50%; }
   }
 
+  /* =============================================================
+     MOBILE OVERFLOW + RESPONSIVE SAFETY
+     Target the tightest common viewport (iPhone SE / Android 360 px)
+     and prevent any horizontal overflow on any screen. Includes the
+     global guards from the spec checklist plus the targeted clamp()
+     adjustments on the big Bebas Neue numerics so they shrink rather
+     than overflow.
+     ============================================================= */
+
+  /* Global guards — safety nets for content the renderer doesn't
+     explicitly constrain. */
+  body { overflow-x: hidden; }
+  img, video { max-width: 100%; height: auto; }
+  input, select, textarea, button { max-width: 100%; }
+  textarea { word-break: break-word; }
+  pre { max-width: 100%; overflow-x: auto; }
+
+  /* Cards never bleed children outside their rounded corners.
+     The Field-Training banner shimmer is inside the card so this
+     does not break the gradient animation. */
+  .card { overflow: hidden; }
+
+  /* Native selects truncate with ellipsis when the option text is
+     longer than the field width. */
+  select {
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* Big Bebas Neue numerics scale down on narrow viewports rather
+     than push their containers wide. Each clamp keeps the original
+     value as the upper bound and floors at a still-readable size. */
+  .stat-value { font-size: clamp(20px, 6vw, 26px); }
+  .countdown  { font-size: clamp(42px, 14vw, 60px); }
+  .dial-num   { font-size: clamp(28px, 9vw, 36px); }
+  .day-num    { font-size: clamp(22px, 7vw, 28px); }
+
+  /* Modal content respects the screen width and never pushes a
+     horizontal scrollbar onto the page. */
+  .modal-content {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Plan-day day-meta line — wrap target-intensity text on tight
+     viewports rather than push the right column off-screen. */
+  .plan-day .day-meta { word-break: break-word; }
+
+  /* Calendar legend can wrap to multiple rows; ensure each item is
+     a self-contained inline-flex pill so wrap points are clean. */
+  .cal-legend-item { white-space: nowrap; }
+
+  /* Impact-preview before/after — at very narrow widths the side-by-
+     side layout cramps. Stack vertically when the screen is too
+     small to fit both columns comfortably. */
+  @media (max-width: 380px) {
+    .impact-change .ba {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    .impact-change .ba .arrow {
+      transform: rotate(90deg);
+    }
+  }
+
+  /* Photo extracted-data grid stacks to a single column at the
+     narrowest breakpoint so each editable input has room to read. */
+  @media (max-width: 360px) {
+    .photo-stats { grid-template-columns: 1fr; }
+  }
+
+  /* Tab bar — six tabs at 375 px is tight. Dial the label down a
+     point at 360 px and below; hide the labels entirely (icon-only
+     tab bar) at 320 px and below. */
+  @media (max-width: 360px) {
+    .tab { font-size: 9px; padding: 8px 2px; letter-spacing: 0.04em; }
+  }
+  @media (max-width: 320px) {
+    .tab .tab-label { display: none; }
+    .tab .tab-icon  { font-size: 22px; }
+  }
+
   /* Honour the user's reduced-motion preference. Everything above
      becomes instant. The visual states still differ — the active
      tab is still highlighted, the toast still appears — there is
@@ -1436,12 +1517,12 @@
   </main>
 
   <nav class="tabbar" role="tablist">
-    <button class="tab active" data-go="checkin"><span class="tab-icon">●</span>Check-In</button>
-    <button class="tab" data-go="data"><span class="tab-icon">▤</span>Data</button>
-    <button class="tab" data-go="plan"><span class="tab-icon">▣</span>Plan</button>
-    <button class="tab" data-go="calendar"><span class="tab-icon">▦</span>Calendar</button>
-    <button class="tab" data-go="log"><span class="tab-icon">≡</span>Log</button>
-    <button class="tab" data-go="profile"><span class="tab-icon">◆</span>Profile</button>
+    <button class="tab active" data-go="checkin"><span class="tab-icon">●</span><span class="tab-label">Check-In</span></button>
+    <button class="tab" data-go="data"><span class="tab-icon">▤</span><span class="tab-label">Data</span></button>
+    <button class="tab" data-go="plan"><span class="tab-icon">▣</span><span class="tab-label">Plan</span></button>
+    <button class="tab" data-go="calendar"><span class="tab-icon">▦</span><span class="tab-label">Calendar</span></button>
+    <button class="tab" data-go="log"><span class="tab-icon">≡</span><span class="tab-label">Log</span></button>
+    <button class="tab" data-go="profile"><span class="tab-icon">◆</span><span class="tab-label">Profile</span></button>
   </nav>
 </div>
 
