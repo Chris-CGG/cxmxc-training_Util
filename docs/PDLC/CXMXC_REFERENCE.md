@@ -8,15 +8,17 @@ This file is intentionally critical. The framework only earns trust if its first
 
 ## Phase status snapshot
 
-| Phase | Status   | Notes                                                      |
-|-------|----------|------------------------------------------------------------|
-| 0     | Skipped  | Athlete profile served as compressed proxy, no DISCOVERY.md.|
-| 1     | Partial  | Schemas in CLAUDE.md (retroactive), no Mermaid diagrams.    |
-| 2     | Done     | Scaffold commit clean; CLAUDE.md was delayed.               |
-| 3     | Done     | Strong feature-by-feature execution with substantive commits.|
-| 4     | Partial  | Thorough JSDoc + schemas; missing diagrams, README, tests.  |
-| 5     | Partial  | PWA installed on Android via LAN; no public deploy yet.     |
-| 6     | Active   | Currently here — unplanned-activity feature was iteration 1.|
+Updated **2026-05-08** after the PDLC backfill pass closed the named gaps. Items still pending real-device verification are flagged in the per-phase sections below.
+
+| Phase | Status   | Notes                                                                                          |
+|-------|----------|------------------------------------------------------------------------------------------------|
+| 0     | Done     | `docs/DISCOVERY.md` backfilled (commit 4aa991c).                                               |
+| 1     | Done     | `docs/architecture.md` (Mermaid ERD + component graph + state flows) and `docs/TECH_DECISIONS.md` backfilled. |
+| 2     | Done     | Scaffold commit was clean; `README.md` content backfilled (commit 8c6ff85); CLAUDE.md timing remains a documented past gap.|
+| 3     | Done     | Strong feature-by-feature execution with substantive commits.                                  |
+| 4     | Mostly done | Smoke test suite (commit 6d2f360) + security checklist (aefada2) + accessibility audit (cbc55e6) all in. Two items pending real-device verification: console-error sweep (procedure in `docs/SECURITY.md`) and TalkBack/keyboard/color-vision/touch walks (procedure in `docs/ACCESSIBILITY.md`). One tracked v2 gap: no CSP header. |
+| 5     | Mostly done | GitHub Pages workflow added (commit 764d298) — needs one push to main + Pages source toggle to go live. Feedback link in Profile screen (f309173). Performance baseline procedure in `docs/PERFORMANCE.md` pending real-device run. Env-var management deferred to v2 (no shared secrets in v1). |
+| 6     | Active   | Currently here — unplanned-activity feature was iteration 1; PDLC backfill is iteration 2.    |
 
 ---
 
@@ -209,16 +211,37 @@ Phase 6 is the current phase. The unplanned-activity feature (commit 582f3c4, "f
 
 These items belong to earlier phases but were addressed mid-project, late, or are still pending. Documenting them so the next project does not repeat them.
 
-- **README content** — listed as Phase 2 deliverable; still missing as of v0.1.0. Tracked.
-- **Mermaid architecture diagrams** — listed as Phase 1 deliverable; not generated. Tracked.
-- **`DISCOVERY.md`** — listed as Phase 0 deliverable; never produced. Athlete profile served as proxy. Tracked.
-- **`TECH_DECISIONS.md`** — listed as Phase 1 deliverable; never produced. Tracked.
-- **`CLAUDE.md` timing** — Phase 2 deliverable; landed in commit 1f2d1da, after data and ROUVY library. Past gap.
+### Closed in the PDLC backfill pass (2026-05-08)
+- **`DISCOVERY.md`** — Phase 0 deliverable; backfilled (commit 4aa991c). Problem statement, user profile, constraints, success metrics, A1-A10 assumptions, out-of-scope list, open Phase 6+ questions.
+- **`TECH_DECISIONS.md`** — Phase 1 deliverable; backfilled (commit bd1cab0). Ten decisions D1-D10 each with chosen/rejected/why/when-to-revisit.
+- **`docs/architecture.md`** with Mermaid diagrams — Phase 1 deliverable; backfilled (commit 397a8cb). Data ERD, component graph, two state-flow sequence diagrams, lifecycle state machine, external dependencies table, security/privacy notes.
+- **README content** — Phase 2 deliverable; backfilled (commit 8c6ff85). Quickstart, project structure, authoritative-files note, doc reading order, compliance posture summary, contributing rules.
+- **Smoke test suite** — Phase 4 deliverable; added in commit 6d2f360 along with a populated `package.json`. 25 tests across all four engine modules; runs in <100 ms with `node --test tests/*.test.mjs`.
+- **`docs/SECURITY.md`** — Phase 4 deliverable; commit aefada2. Security checklist walked against the v0.1.0 codebase, 7 pass + 2 tracked gaps (no CSP header, HTTP on LAN dev). Console-error sweep procedure included for the user to run on the target device.
+- **`docs/ACCESSIBILITY.md`** — Phase 4 deliverable; commit cbc55e6. WCAG-AA audit, 10 strong items + 5 tracked gaps for v0.2.0. TalkBack / keyboard / color-vision / touch procedures for real-device verification.
+- **GitHub Issues feedback link** — Phase 5 deliverable; commit f309173. Profile screen card with one-click link to repo Issues.
+- **GitHub Pages deploy workflow** — Phase 5 deliverable; commit 764d298. `.github/workflows/deploy.yml` runs npm test then publishes the static site.
+- **`docs/PERFORMANCE.md`** — Phase 4/5 deliverable; commit dea8125. Lighthouse-mobile baseline procedure with concrete acceptance criteria; results table pending real-device run.
+
+### Closed during the v0.1.0 build
+- **`CLAUDE.md` timing** — Phase 2 deliverable; landed in commit 1f2d1da, after data and ROUVY library. Past gap, no longer fixable.
 - **Engine extraction** — Phase 3 / refactor; landed in commit d088593 after the inline shell got too dense. Right call, but should have been the architecture from day one.
 - **JSDoc + file headers** — Phase 4 deliverable; landed in commit be60fa4 as a thorough retroactive pass. Going forward the rule is "documented at the moment of writing".
-- **Data schemas section** — Phase 1 deliverable; landed in commit 77f2cd1 as a section in `CLAUDE.md`. Functional but coupled to the project brief.
-- **`CHANGELOG.md`** — should have been maintained throughout. Seeded retroactively in this PDLC pass with v0.1.0.
-- **Commit discipline** — enforced from the start. The one habit that did not need retroactive fixing.
+- **Data schemas in `CLAUDE.md`** — Phase 1 deliverable; landed in commit 77f2cd1 as a section in `CLAUDE.md`. Functional but coupled to the project brief.
+- **`CHANGELOG.md`** — should have been maintained throughout. Seeded with v0.1.0 in commit a31771a; the backfill pass itself logged in `[Unreleased]`.
+
+### Pending real-device verification
+- **Console-error sweep** — procedure in `docs/SECURITY.md`; results table pending.
+- **TalkBack / keyboard / color-vision / touch walks** — procedure in `docs/ACCESSIBILITY.md`; results table pending.
+- **Lighthouse-mobile baseline** — procedure in `docs/PERFORMANCE.md`; numbers pending the live deployment.
+
+### Tracked for v0.2.0+
+- **CSP header** — `docs/SECURITY.md` includes a proposed meta-tag policy; v1 surface is narrow enough that the gap is low priority.
+- **Five accessibility gaps** — form-label `for`/`id` association, modal focus trap, opt-grid touch target sizing, slider `aria-describedby`, supplement-delete `aria-label`. All fixable in a focused v0.2.0 accessibility commit.
+- **Env-var management** — deferred until v2 introduces shared secrets (Supabase mirror).
+
+### Habits that did not need retroactive fixing
+- **Commit discipline** — enforced from the start. Every change in its own commit with a substantive message.
 
 ---
 
