@@ -2244,11 +2244,89 @@ function clearPhoto() {
 }
 
 /**
- * Read a File via FileReader and return its base64 payload + media type.
+ * Compress and resize an image Blob/File via a canvas round-trip.
+ *
+ * Why compress before sending to Anthropic
+ * - Vision API cost scales with image size. A 4-12 MB phone photo costs
+ *   substantially more than a 200-300 KB compressed version, with the
+ *   model unable to read finer detail than the on-device screen anyway.
+ * - Anthropic also caps image payloads (request body limits). Modern
+ *   Android photos can exceed those limits straight off the camera.
+ *
+ * Defaults match the feature spec: max 1200 px wide, JPEG quality 0.85.
+ * Aspect ratio is preserved. If the image is already narrower than
+ * maxWidth, it is re-encoded at the target quality without upscaling.
+ *
+ * @param {Blob|File} blob source image
+ * @param {number} [maxWidth=1200]
+ * @param {number} [quality=0.85] JPEG quality 0-1
+ * @returns {Promise<Blob>} a new image/jpeg Blob
+ */
+function compressImage(blob, maxWidth = 1200, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const ratio = img.width > maxWidth ? maxWidth / img.width : 1;
+        const w = Math.max(1, Math.round(img.width  * ratio));
+        const h = Math.max(1, Math.round(img.height * ratio));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { URL.revokeObjectURL(url); return reject(new Error('Canvas 2D unavailable')); }
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(
+          out => {
+            URL.revokeObjectURL(url);
+            if (!out) return reject(new Error('Compression failed (toBlob returned null)'));
+            resolve(out);
+          },
+          'image/jpeg',
+          quality,
+        );
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        reject(e);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Could not decode image (corrupt or unsupported format)'));
+    };
+    img.src = url;
+  });
+}
+
+/**
+ * Render an inline error state inside #photo-status, with a "Use Manual
+ * Entry Instead" fallback button so a vision failure never strands the user.
+ *
+ * @param {string} message human-readable error text
+ */
+function showPhotoError(message) {
+  const status = $('#photo-status');
+  status.style.display = '';
+  status.classList.remove('muted');
+  status.classList.add('photo-error');
+  status.innerHTML = `
+    <div class="from">VISION ERROR</div>
+    ${escapeHtml(message)}
+    <div class="gap"></div>
+    <button class="btn ghost" id="photo-fall-manual">Use Manual Entry Instead</button>
+  `;
+  $('#photo-fall-manual').addEventListener('click', () => {
+    setDataMode('manual');
+    toast('Switched to Manual');
+  });
+}
+
+/**
+ * Read a File/Blob via FileReader and return its base64 payload + media type.
  * The data URL header (everything before the comma) is stripped — the
  * Vision API wants only the base64 body.
  *
- * @param {File} file
+ * @param {Blob|File} file
  * @returns {Promise<{base64:string, mediaType:string}>}
  */
 function fileToImageData(file) {
@@ -2281,33 +2359,54 @@ async function analyzePhoto() {
   }
   const apiKey = localStorage.getItem(K.apiKey) || '';
   if (!apiKey) {
-    toast('Add an Anthropic API key in Profile first');
+    showPhotoError('No Anthropic API key saved on this device. Add one in Profile → AI Coach to use photo extraction.');
     return;
   }
 
-  const status = $('#photo-status');
+  // Reset status panel before each run; clear any prior error styling.
+  const status  = $('#photo-status');
   const results = $('#photo-results');
   results.style.display = 'none';
+  status.classList.remove('photo-error');
   status.classList.add('muted');
   status.style.display = '';
   status.innerHTML = '<div class="from">VISION</div>Reading your data <span class="typing-dots"><span></span><span></span><span></span></span>';
 
   let result;
   try {
-    const { base64, mediaType } = await fileToImageData(photoState.file);
+    // Compress every photo before sending. Defaults match the feature spec:
+    // max 1200 px wide, JPEG quality 0.85. The original camera-roll image
+    // is left untouched in photoState.file in case the user clears + retries.
+    const compressed = await compressImage(photoState.file, 1200, 0.85);
+    const { base64, mediaType } = await fileToImageData(compressed);
     result = await extractCyclingData({ apiKey, imageBase64: base64, mediaType });
   } catch (err) {
-    result = { ok: false, error: 'Local error: ' + err.message };
+    showPhotoError('Local error preparing image: ' + err.message);
+    return;
   }
 
   if (!result.ok) {
-    status.innerHTML = '<div class="from">VISION</div>' + escapeHtml(result.error || 'Extraction failed.');
+    showPhotoError(result.error || 'Extraction failed.');
+    return;
+  }
+
+  // Detect the "no metrics detected" case explicitly: every core field null.
+  // Better to nudge the user to retry / fall back than to render an empty
+  // form pretending it succeeded.
+  const json = result.json || {};
+  const coreKeys = [
+    'avg_power_w','normalized_power_w','avg_hr_bpm','avg_cadence_rpm',
+    'duration_seconds','distance_miles','distance_km','tss',
+  ];
+  const anyExtracted = coreKeys.some(k => json[k] !== null && json[k] !== undefined);
+  if (!anyExtracted) {
+    showPhotoError("Couldn't read this image clearly. Try better lighting, get closer to the screen, or use Manual entry.");
     return;
   }
 
   status.style.display = 'none';
   results.style.display = '';
-  renderExtractedData(result.json);
+  renderExtractedData(json);
 }
 
 /**
