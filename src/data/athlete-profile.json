@@ -1,0 +1,106 @@
+{
+  "athlete": {
+    "name": "Chris Clarke-Gonzalez",
+    "username": "CxMxC",
+    "dob": "1989-10-10",
+    "age": 36,
+    "gender": "male",
+    "weight_lb": 205,
+    "weight_kg": 93,
+    "height_in": 76,
+    "height_cm": 193,
+    "frame_size_cm": 56
+  },
+  "equipment": {
+    "trainer": "Wahoo KICKR 40DF",
+    "hr_monitor": "808S 0003814",
+    "road_bike": "Cannondale Synapse",
+    "trainer_bike": "Scott Speedster (replace)",
+    "gravel_bike": true,
+    "mtb": true,
+    "power_meter": "KICKR (smart trainer)"
+  },
+  "baseline": {
+    "ftp_current": 232,
+    "ftp_last_month": 211,
+    "ftp_source": "ROUVY estimated",
+    "wkg_current": 2.5,
+    "resting_hr_baseline": 56,
+    "max_hr_seen": 184,
+    "natural_cadence_uncoached": 61,
+    "cadence_ceiling_proven": 111,
+    "power_20min_pr": 244,
+    "power_20min_monthly": 219,
+    "power_5min_pr": 275,
+    "power_1min_pr": 362,
+    "avg_power_30d": 203
+  },
+  "background": {
+    "primary_discipline": "fixed_gear_urban_crit",
+    "road_experience": "group_rides_not_ace_pace",
+    "mtb_experience": "learning_singletrack",
+    "crash_pattern": ["confidence", "technical_skills", "trail_reading"],
+    "breathing": {
+      "condition": "septal_deviation",
+      "allergies": true,
+      "pollen_sensitivity": true,
+      "intake_magnets": false
+    },
+    "mental_health": {
+      "panic_attacks_history": true,
+      "burst_crash_pattern": true,
+      "heat_sensitivity": true,
+      "stress_ftp_correlation": true
+    }
+  },
+  "thresholds": {
+    "resting_hr_green": 65,
+    "resting_hr_yellow": 70,
+    "resting_hr_red": 75,
+    "stability_score_green": 75,
+    "stability_score_yellow": 50,
+    "stability_score_red": 0,
+    "hr_max_training": 175,
+    "hr_aerobic_ceiling": 150
+  },
+  "zones": {
+    "z1_max": 139,
+    "z2_max": 162,
+    "z3_max": 174,
+    "z4_max": 185,
+    "z5_max": 196,
+    "ftp_z2_power_max": 185,
+    "ftp_sweetspot_low": 204,
+    "ftp_sweetspot_high": 213,
+    "ftp_threshold_low": 220,
+    "ftp_threshold_high": 232
+  },
+  "goals": [
+    {
+      "id": "tulsa_2026",
+      "name": "Tulsa Tough Ace Peloton Fondo",
+      "date": "2026-06-06",
+      "distance_miles": 103,
+      "category": "Ace Peloton",
+      "priority": 1,
+      "block_start": "2026-05-07",
+      "block_days": 20,
+      "status": "active"
+    },
+    {
+      "id": "ehots_2026",
+      "name": "EHOTS Rio Grande Valley",
+      "date": "2026-07-05",
+      "distance_miles": 50,
+      "category": "Competitive Lead Group",
+      "terrain": "MTB_singletrack",
+      "priority": 2,
+      "status": "planned"
+    }
+  ],
+  "supplements": [],
+  "water_target_oz": 100,
+  "training_start": "2026-05-07",
+  "app_version": "0.1.0",
+  "last_updated": "2026-05-08"
+}
