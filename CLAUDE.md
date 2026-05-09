@@ -62,20 +62,116 @@ Source of truth: `src/data/training-plan.json`. Do not paraphrase it from memory
 ## File map
 
 ```
-/index.html                     — entire PWA shell, inlined CSS + JS module
+/index.html                     — PWA shell: inlined CSS + ES module that imports src/engine/*
 /manifest.json                  — PWA manifest, name "CxMxC Training", standalone
-/service-worker.js              — offline cache for app shell + data files
+/service-worker.js              — offline cache for app shell + data files + engine modules
 /icon.svg                       — app icon (maskable)
 /.env.example                   — placeholder for keys (never commit real .env)
 /src/data/athlete-profile.json  — AUTHORITATIVE — do not paraphrase or modify silently
 /src/data/training-plan.json    — AUTHORITATIVE — 20-day block, do not paraphrase
 /src/data/rouvy-routes.json     — curated ROUVY library, may be edited
+/src/engine/stability.js        — stability score + burst-crash pattern detection
+/src/engine/adaptation.js       — mood-gated guidance + structured session adaptations
+/src/engine/ai-coach.js         — Anthropic API wrapper (browser-direct)
 /src/components/                — empty placeholders for v2 component split
-/src/engine/                    — empty placeholders for v2 logic extraction
 /src/styles/                    — empty placeholder for v2 CSS extraction
 ```
 
-The `src/components`, `src/engine`, `src/styles` directories are intentionally empty in v1. Everything is currently inlined in `index.html`. When v2 splits the bundle, those are the destinations — names already match.
+`src/engine/` was extracted from the inline shell as the first refactor — those modules are the supportable logic surface. `src/components/` and `src/styles/` are still empty, intentionally; they're the v2 destinations for the DOM renderers and CSS, the names already match.
+
+## Data schemas
+
+The three JSON files in `src/data/` are the only place athlete-specific values live. Everything else in the app reads them at runtime — there are no FTP, zone, threshold, or goal numbers hardcoded in JS or HTML (CLAUDE.md rule 5). This section documents every top-level key. Per dev rule 1, two of these files are authoritative and require explicit permission to modify.
+
+### `src/data/athlete-profile.json` *(authoritative — do not modify silently)*
+
+Single root object. Top-level keys:
+
+- **`athlete`** — identity: `name`, `username`, `dob` (YYYY-MM-DD), `age`, `gender`, `weight_lb`, `weight_kg`, `height_in`, `height_cm`, `frame_size_cm`. Used by the Profile screen and the AI coach system prompt.
+- **`equipment`** — `trainer` (Wahoo KICKR 40DF), `hr_monitor` (model + serial), `road_bike`, `trainer_bike`, `gravel_bike` (bool), `mtb` (bool), `power_meter`. Power data comes from the KICKR only.
+- **`baseline`** — current physiological numbers driving the math:
+  - `ftp_current` (W) — current FTP. The single most-referenced number in the app.
+  - `ftp_last_month` — month-ago comparison.
+  - `ftp_source` — provenance string ("ROUVY estimated").
+  - `wkg_current` — power-to-weight ratio.
+  - `resting_hr_baseline` — RHR floor used as the stability score's HR penalty reference (every bpm over baseline subtracts 2 from the score).
+  - `max_hr_seen` — observed max from Day 1 onward.
+  - `natural_cadence_uncoached` — Chris's resting-state cadence (61 RPM). Many sessions deliberately push above this.
+  - `cadence_ceiling_proven` — neuromuscular ceiling shown on Day 1 (111 RPM).
+  - `power_*_pr` and `avg_power_30d` — context numbers for the coach.
+- **`background`** — non-numeric context the coach reads:
+  - `primary_discipline`, `road_experience`, `mtb_experience`, `crash_pattern` — riding background.
+  - `breathing` — `septal_deviation` flag, `allergies`, `pollen_sensitivity`, `intake_magnets` (boolean for the breathing magnets).
+  - `mental_health` — `panic_attacks_history`, `burst_crash_pattern`, `heat_sensitivity`, `stress_ftp_correlation`. Treated as physiological data, never as weakness (rule 3).
+- **`thresholds`** — band cutoffs read by the engine:
+  - `resting_hr_green` / `_yellow` / `_red` — RHR bands (≤ green, = yellow, ≥ red).
+  - `stability_score_green` / `_yellow` / `_red` — score bands. Defaults to 75 / 50 / 0; consumed by `computeStability` in `stability.js`.
+  - `hr_max_training` — hard ceiling for prescribed sessions.
+  - `hr_aerobic_ceiling` — Z2 cap referenced by yellow-day adaptation messages in `adaptation.js`.
+- **`zones`** — derived zone limits by HR and by power. `z1_max … z5_max` are HR ceilings. `ftp_z2_power_max`, `ftp_sweetspot_low/high`, `ftp_threshold_low/high` are power ranges. The Profile screen renders these.
+- **`goals`** — array of race goals. Each: `id`, `name`, `date` (YYYY-MM-DD), `distance_miles`, `category`, `priority` (1 = primary), `block_start`, `block_days`, `status`. The Plan screen uses priority 1 to compute days-to-race; the secondary entry (EHOTS) is shown on the Profile.
+- **`supplements`** — array of `{ name, dose }` definitions. Empty by default; the Log screen edits a localStorage copy under `cxmxc.supplements` rather than this file.
+- **`water_target_oz`** — daily water target (100). Drives the water grid cell count on the Log screen.
+- **`training_start`**, **`app_version`**, **`last_updated`** — meta.
+
+Invariants the app assumes:
+- `baseline.ftp_current` is always > 0.
+- `thresholds.stability_score_green > stability_score_yellow > stability_score_red` (otherwise the band ladder collapses).
+- `goals` always contains at least one entry with `priority: 1`.
+
+### `src/data/training-plan.json` *(authoritative — do not modify silently)*
+
+Single root object. Top-level keys:
+
+- **`block`** — block-level meta: `name`, `start_date`, `end_date`, `total_days`, `goal_id` (matches `athlete-profile.json` `goals[].id`), `target_ftp_gain`, `primary_focus` array.
+- **`phases`** — three-element array, one per training phase:
+  - `{ phase, name, days, goal }` — phase number 1-3, day-range string ("2-7"), prose goal.
+- **`sessions`** — 20-element array, one per day in chronological order:
+  - `day` (1-20) — sequential index, matches the day number on the Plan screen.
+  - `date` (YYYY-MM-DD) — calendar date used for "today" lookups.
+  - `phase` — 0 for the Day 1 benchmark, 1-3 for the named phases.
+  - `type` — one of `benchmark | rest | threshold | endurance | vo2 | recovery`. Drives badge colour and route-suggestion tag mapping in `renderRouteSuggestions`.
+  - `badge` — usually equal to `type`; kept separate so colour and class can diverge in v2.
+  - `title`, `description` — display strings shown in the Plan detail panel.
+  - `completed` — boolean. Mutated only via the localStorage overlay (`cxmxc.completed`); the JSON file itself is never written to disk by the app (rule 1).
+  - `duration_min` — prescribed minutes; 0 for full rest.
+  - `target_intensity` — free-text intensity string ("95-100% FTP", "Strict Z2", "REST"). Shown verbatim.
+  - `target_cadence_rpm` — string range ("88-95") or null.
+  - `erg_mode` — boolean. Default OFF (rule 4); only set true when ERG is required.
+  - `rouvy_workout`, `rouvy_route` — optional names that should match entries in `rouvy-routes.json`.
+  - `key_metrics` — array of strings the user should review post-session.
+  - `fueling_target_carbs_hr` — target grams of carbs per hour during the session.
+  - `notes` — extra context shown under the detail panel.
+
+Invariants:
+- `sessions.length === block.total_days` (currently 20).
+- `sessions[].date` is strictly increasing day-over-day.
+- Day 1 (phase 0) is always a benchmark; Day 20 is always pre-race rest.
+- Every `rouvy_workout` and `rouvy_route` value, when non-null, has a matching `name` in `rouvy-routes.json`.
+
+### `src/data/rouvy-routes.json` *(curated — may be edited)*
+
+Single root object with two parallel arrays:
+
+- **`version`**, **`last_updated`**, **`notes`** — meta.
+- **`routes`** — array of physical ROUVY routes. Each:
+  - `id`, `name` — `name` must match what the plan or UI references exactly.
+  - `country`, `distance_km`, `elevation_m`, `duration_typical_min`.
+  - `difficulty` — one of `easy | moderate | hard | very_hard`.
+  - `terrain` — free-text class (`flat_coastal`, `alpine_climb`, …).
+  - `tags` — flat array. The route-suggestion logic in `renderRouteSuggestions` maps session type to a wanted-tag list and filters by overlap.
+  - `best_for` — narrower hint array of training types the route fits well.
+  - `ftp_range_w` — `[min, max]` watts a typical rider would average. Athlete-fit hint, not a hard limit.
+  - `used_in_plan_days` — array of plan day numbers that already cite this route. Maintained by hand when the plan adds a new reference.
+  - `notes` — coach-style commentary.
+- **`workouts`** — array of structured ROUVY workouts. Same shape as routes minus `country / distance_km / elevation_m / terrain`, plus:
+  - `type` — workout class: `cadence | threshold | endurance | vo2 | recovery | test`.
+  - `duration_min`, `structure` — interval-set description in plain prose.
+  - `erg_recommended` — boolean hint per workout. Defaults to false matching the dev rule 4 ERG-OFF posture.
+
+Invariants:
+- Every `name` referenced from `training-plan.json` (`rouvy_workout`, `rouvy_route`) appears in this file.
+- `used_in_plan_days` arrays stay aligned with `training-plan.json` whenever a session references a new route.
 
 ## Instructions for future Claude Code sessions
 
