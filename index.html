@@ -274,12 +274,12 @@
   /* Detail panel */
   .detail {
     margin-top: 8px;
-    padding: 14px; border-radius: 10px;
+    padding: 0 14px;
+    border-radius: 10px;
     background: var(--bg-elev2);
-    border: 1px solid var(--border-soft);
-    display: none;
+    border: 1px solid transparent;
   }
-  .detail.open { display: block; }
+  .detail.open { border-color: var(--border-soft); }
   .detail-row {
     display: flex; justify-content: space-between; align-items: baseline;
     gap: 16px;
@@ -569,6 +569,170 @@
   .badge.field { background: rgba(196, 163, 255, 0.18); color: var(--accent-2); }
   .badge.protection { background: rgba(95, 212, 126, 0.15); color: var(--green); }
   .badge.flag { background: rgba(255, 107, 107, 0.15); color: var(--red); }
+
+  /* =============================================================
+     MOTION
+     Animation + transitions. Targeted, not gratuitous. The whole
+     block is gated behind prefers-reduced-motion at the bottom so
+     users who opt out of motion get zero animation.
+     ============================================================= */
+
+  /* @property registers --pct so the dial's conic-gradient angle
+     can interpolate smoothly. Without this declaration the browser
+     treats --pct as a token and snaps to the new value. */
+  @property --pct {
+    syntax: '<number>';
+    initial-value: 0;
+    inherits: true;
+  }
+
+  /* Dial — smooth fill animation when the score changes.
+     The color (--color) still snaps because it's a band signal,
+     not a continuum. */
+  .dial {
+    transition: --pct 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                background 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .dial-num {
+    transition: color 0.3s ease;
+  }
+
+  /* Toast — slide up from below, not pure fade. Reads as response,
+     not as ambient noise. */
+  .toast {
+    transform: translateX(-50%) translateY(12px);
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Modal — fade backdrop, slide-up content. Plays once per open. */
+  .modal.open {
+    animation: modal-fade-in 0.18s ease;
+  }
+  .modal.open .modal-content {
+    animation: modal-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modal-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes modal-slide-up {
+    from { transform: translateY(48px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  /* Screen change — subtle fade+rise on the now-active screen.
+     Re-renders inside a screen do NOT replay this; only tab switch
+     to the screen does. */
+  .screen.active {
+    animation: screen-fade-in 0.24s ease;
+  }
+  @keyframes screen-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Tab bar — animated underline indicator on the active tab. */
+  .tab { position: relative; transition: color 0.2s ease; }
+  .tab::after {
+    content: '';
+    position: absolute;
+    left: 50%; bottom: 2px;
+    width: 0; height: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+    transform: translateX(-50%);
+    transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .tab.active::after { width: 28px; }
+
+  /* Segmented toggle — smooth color/background transitions on the
+     pills so the active state reads as moving, not flickering. */
+  .segmented button {
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  /* Buttons — press feedback is more pronounced; a short shadow
+     lift on tap reads as physical contact. */
+  .btn, .iconbtn {
+    transition: transform 0.1s ease, box-shadow 0.18s ease;
+  }
+  .btn:active, .iconbtn:active {
+    transform: scale(0.97);
+  }
+  .btn:focus-visible, .iconbtn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Plan-day cards — gentle press response. */
+  .plan-day { transition: transform 0.1s ease, border-color 0.2s ease; }
+  .plan-day:active { transform: scale(0.995); }
+
+  /* Detail panel expand — smooth open. The renderer toggles .open;
+     CSS handles the geometry. */
+  .detail {
+    overflow: hidden;
+    max-height: 0;
+    padding-top: 0; padding-bottom: 0;
+    transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.2s ease,
+                opacity 0.2s ease;
+    opacity: 0;
+  }
+  .detail.open {
+    max-height: 1200px;
+    padding-top: 14px; padding-bottom: 14px;
+    opacity: 1;
+  }
+
+  /* AI coach typing indicator — three dots pulsing in sequence.
+     Used while a coach call is in flight. */
+  .typing-dots {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .typing-dots span {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: typing-pulse 1.2s ease-in-out infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes typing-pulse {
+    0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+    40%           { opacity: 1;    transform: scale(1); }
+  }
+
+  /* Field-Training banner — subtle ambient pulse so the call to
+     action reads as inviting, not static. Only the gradient
+     intensity moves; nothing scales or shifts position. */
+  .unplanned-banner {
+    background-size: 200% 200%;
+    animation: banner-shimmer 8s ease-in-out infinite;
+  }
+  @keyframes banner-shimmer {
+    0%, 100% { background-position:   0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+
+  /* Honour the user's reduced-motion preference. Everything above
+     becomes instant. The visual states still differ — the active
+     tab is still highlighted, the toast still appears — there is
+     just no transition between states. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -2431,7 +2595,7 @@ function wire() {
   $('#ask-coach').addEventListener('click', async () => {
     const out = $('#coach-out');
     out.classList.add('muted');
-    out.innerHTML = '<div class="from">COACH</div>Thinking…';
+    out.innerHTML = '<div class="from">COACH</div>Thinking <span class="typing-dots"><span></span><span></span><span></span></span>';
     const todayCheckin = (load(K.checkins, []) || []).slice(-1)[0] || null;
     const res = await askCoach({
       apiKey: localStorage.getItem(K.apiKey) || '',
