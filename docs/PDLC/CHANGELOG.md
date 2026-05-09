@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-05-09 — QA fixes
+
+Three QA bugs filed against v0.2.0 fixed in order, each in its own commit. No new features; tightening of existing surfaces.
+
+### Fixed
+- **Resting HR input not accepting mobile input.** `type="number"` switched to `type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3"` for reliable Android numeric-keypad behaviour. `min`/`max` attributes removed (they could silently flag intermediate values during typing); validation moved to save-time (empty → toast + focus, value outside 30-200 → toast). Live readout span added next to the field with `aria-live="polite"` so the typed value is visually confirmed (and announced to screen readers). `<label for="in-rhr">` added — closes one of the form-label-association gaps in `docs/ACCESSIBILITY.md`. Input handler strips non-digits + caps at 3 chars before re-rendering so paste / external keyboard / autocomplete can't introduce text that breaks the numeric coerce.
+- **Mobile overflow + text bleed at 375 px.** Systematic audit landed as a "MOBILE OVERFLOW + RESPONSIVE SAFETY" CSS block: global guards (`body { overflow-x: hidden }`, `img { max-width: 100% }`, `input/select/textarea { max-width: 100% }`, `textarea { word-break: break-word }`, `pre { overflow-x: auto }`), `.card { overflow: hidden }`, `select` text-overflow ellipsis. Big Bebas Neue numerics scale via `clamp()` instead of overflowing: `.stat-value` 20→26 px, `.countdown` 42→60 px, `.dial-num` 28→36 px, `.day-num` 22→28 px. `.modal-content { max-width: 100vw; overflow-x: hidden }` so day-detail / unplanned modals can't push a horizontal scrollbar. Per-component fixes: `.plan-day .day-meta` word-break, `.cal-legend-item` whitespace-nowrap. Two breakpoint-specific adjustments: at ≤380 px the impact-preview before/after switches from 2-col to single column with the arrow rotated 90°; at ≤360 px `.photo-stats` collapses to a single column. Tab bar fallback: tab labels now wrapped in `<span class="tab-label">` so they can be hidden — at ≤360 px font drops to 9 px with tighter letter-spacing; at ≤320 px the labels disappear entirely and the tab bar becomes icon-only with the icon scaled to 22 px.
+- **Photo capture missing gallery upload option.** Photo tab restructured: three full-width stacked action buttons (📷 **Take Photo Now** / 🖼️ **Upload from Gallery** / 📸 **Browse Files**) replace the previous 2-col tight grid. Camera and gallery affordances were always wired but read as one button on small screens; explicit icons + dedicated labels + vertical stacking fixes that. Third button (**Browse Files**) is gated on `'showOpenFilePicker' in window` and gracefully disappears on Android Chrome / iOS / Firefox. **Drag-and-drop zone** added below the buttons — dashed border, "Or drag a screenshot here" label, accent-purple highlight on dragover, hidden via `@media (hover: hover) and (pointer: fine)` on touch-only devices. Drop feeds straight into `photoSetFile()` — compression + extraction path is identical regardless of source. Window-level dragover/drop handler prevents the browser from navigating away when the user misses the zone.
+
+### Notes
+- **Spec deviation — "Choose from Recent."** The original bug spec called for a third button showing "last 4 images from camera roll." No web API exposes the camera roll like that; `showOpenFilePicker` is a richer system file picker, not a recent-photos surface. The shipped third option is labelled "Browse Files" to match what the platform actually supports.
+- **Other UI issues noticed during the 375 px audit, deferred to v0.3.0.** The remaining four accessibility gaps from `docs/ACCESSIBILITY.md` (modal focus trap, opt-grid touch target sizing, slider `aria-describedby`, supplement-delete `aria-label`) were not addressed in this pass — they are tracked. The unplanned-activity post-ride form (`data-unplanned-host`) is still legacy code reachable only via the Check-In banner; folding it into the new 3-tab Manual flow remains a v0.3.0 candidate per `ROADMAP.md`.
+
 ## [0.2.0] — 2026-05-09
 
 Two major features (Calendar tab + Photo capture with Vision-API extraction), the entire PDLC framework + retroactive Phase 0-5 backfill, the UI debug pass, and the Phase 4/5 hardening artefacts. v0.2.0 is the first release that closes all the named gaps from the v0.1.0 honest retrospective in `CXMXC_REFERENCE.md`.
@@ -103,5 +116,6 @@ First captured release. Tagged retroactively at the close of the initial Tulsa T
 - v0.1.0 marks "MVP shipped to its single user" — it is not yet a public deployment. See `CXMXC_REFERENCE.md` Phase 5 for the gap list.
 
 [Unreleased]: ./CHANGELOG.md
+[0.2.1]: ./CHANGELOG.md#021--2026-05-09--qa-fixes
 [0.2.0]: ./CHANGELOG.md#020--2026-05-09
 [0.1.0]: ./CHANGELOG.md#010--2026-05-08
