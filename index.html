@@ -697,15 +697,35 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-/* ===============================
-   CxMxC Training — PWA shell
-   State: localStorage under cxmxc.*
-   Data: src/data/*.json (fetched once)
-   Engine modules:
-     ./src/engine/stability.js   — score + burst-crash detection
-     ./src/engine/adaptation.js  — mood-gated guidance + adaptations
-     ./src/engine/ai-coach.js    — Anthropic API wrapper
-   =============================== */
+/**
+ * CxMxC Training — PWA shell.
+ *
+ * This file is intentionally a single-file shell. It owns:
+ *   - DOM rendering for the 5 screens (Check-In, Data, Plan, Log, Profile).
+ *   - localStorage persistence under the `cxmxc.*` namespace.
+ *   - Wiring user interactions to renderers and engine modules.
+ *   - Boot: data load, completion overlay, Day 1 seed, service worker.
+ *
+ * It does NOT own:
+ *   - Stability scoring or burst-crash detection (-> stability.js).
+ *   - Mood-gated guidance text or session adaptations (-> adaptation.js).
+ *   - Anthropic API calls or system-prompt construction (-> ai-coach.js).
+ *
+ * All athlete-specific values (FTP, zones, thresholds, RHR baseline, race
+ * dates) are READ from src/data/*.json at boot. There are no hardcoded
+ * athlete numbers in this file (CLAUDE.md rule 5).
+ *
+ * Persistence keys are listed in `K` below. Anything we want to survive a
+ * refresh lives there. localStorage is v1; v2 will mirror to Supabase using
+ * the same key names, so don't rename them casually.
+ *
+ * @see CLAUDE.md for athlete background, language rules, and dev rules 1-10.
+ */
+
+// ---------------------------------------------------------------------------
+// Engine module imports.
+// These are the pure, testable units. The shell just wires them to the DOM.
+// ---------------------------------------------------------------------------
 
 import {
   computeStability,
@@ -723,32 +743,91 @@ import {
   summarizeRecentSessions,
 } from './src/engine/ai-coach.js';
 
+// ---------------------------------------------------------------------------
+// NAMESPACE & STORAGE KEYS
+// All persistent state lives under `cxmxc.*` so a future Supabase mirror can
+// scan one prefix. Don't rename without a migration plan.
+// ---------------------------------------------------------------------------
+
+/** Namespace prefix for every localStorage key. */
 const NS = 'cxmxc';
+
+/**
+ * Map of well-known storage keys.
+ * Each value is the localStorage key string; comments describe the shape.
+ */
 const K = {
-  theme:        `${NS}.theme`,
-  apiKey:       `${NS}.apiKey`,
-  checkins:     `${NS}.checkins`,    // [{ date, sleep, energy, mood, stress, sore, rhr, score, band }]
-  log:          `${NS}.log`,         // { 'YYYY-MM-DD': { water_oz, supplements:[{name,dose,taken}], sessions:[...], notes } }
-  supplements:  `${NS}.supplements`, // [{name,dose}] persistent definitions
-  sessions:     `${NS}.sessions`,    // captured ride data, list
+  theme:        `${NS}.theme`,        // 'dark' | 'light'
+  apiKey:       `${NS}.apiKey`,       // Anthropic API key, on-device only
+  checkins:     `${NS}.checkins`,     // [{ date, sleep, energy, mood, stress, sore, rhr, score, band }]
+  log:          `${NS}.log`,          // { 'YYYY-MM-DD': { water_oz, supplements:[{name,dose,taken}], notes } }
+  supplements:  `${NS}.supplements`,  // [{ name, dose }] persistent supplement definitions
+  sessions:     `${NS}.sessions`,     // logged ride sessions, oldest first
 };
 
-// --- tiny utils
+// ---------------------------------------------------------------------------
+// UTILITIES
+// Tiny helpers used across renderers. Kept terse — anything that grows past
+// a few lines should move into its own module.
+// ---------------------------------------------------------------------------
+
+/** querySelector. @param {string} sel @param {ParentNode} [root=document] */
 const $ = (sel, root=document) => root.querySelector(sel);
+
+/** querySelectorAll as array. @param {string} sel @param {ParentNode} [root=document] */
 const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+/** Today's date in `YYYY-MM-DD` (device local day). @returns {string} */
 const todayISO = () => new Date().toISOString().slice(0,10);
+
+/**
+ * Format an ISO date for compact display, e.g. "Thu, May 7".
+ * Uses the device locale so "May 7" becomes "7 May" in en-GB etc.
+ * @param {string} iso `YYYY-MM-DD`
+ * @returns {string}
+ */
 const fmtDate = (iso) => {
   const d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
 };
+
+/**
+ * Whole days from `a` to `b` (b - a). Negative if `b` is before `a`.
+ * @param {string} a ISO `YYYY-MM-DD`
+ * @param {string} b ISO `YYYY-MM-DD`
+ * @returns {number}
+ */
 const daysBetween = (a, b) => Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000);
+
+/** Clamp `n` into [lo, hi]. */
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+
+/**
+ * Read a JSON value from localStorage with a fallback.
+ * Catches parse errors and returns the fallback so a corrupted blob doesn't
+ * block the app from starting.
+ * @template T
+ * @param {string} k storage key
+ * @param {T} fallback returned if missing or unparseable
+ * @returns {T}
+ */
 const load = (k, fallback) => {
   try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }
   catch { return fallback; }
 };
+
+/**
+ * Write a JSON value to localStorage. Throws if the value is not serializable.
+ * @param {string} k storage key
+ * @param {*} v JSON-serializable value
+ */
 const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
+/**
+ * Show a transient toast. Replaces the previous toast if one is on screen.
+ * @param {string} msg short message text
+ * @param {number} [ms=1800] visible duration
+ */
 function toast(msg, ms=1800) {
   const t = $('#toast');
   t.textContent = msg;
@@ -757,7 +836,16 @@ function toast(msg, ms=1800) {
   toast._t = setTimeout(() => t.classList.remove('show'), ms);
 }
 
-// --- state
+// ---------------------------------------------------------------------------
+// STATE
+// Single in-memory cache for files we fetched at boot. Anything that needs to
+// persist across reload goes into localStorage via `K`.
+// ---------------------------------------------------------------------------
+
+/**
+ * App-wide live state. All fields except `today` are populated by `loadData`.
+ * @type {{profile:object|null, plan:object|null, routes:object|null, today:string}}
+ */
 const state = {
   profile: null,
   plan: null,
@@ -765,7 +853,17 @@ const state = {
   today: todayISO(),
 };
 
-// --- data loading
+// ---------------------------------------------------------------------------
+// DATA LOADING
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch the three authoritative JSON files in parallel and stash them on
+ * `state`. Throws if any file fails to load — boot catches that and shows
+ * a hint about file:// vs http://.
+ *
+ * @returns {Promise<void>}
+ */
 async function loadData() {
   const [p, pl, r] = await Promise.all([
     fetch('src/data/athlete-profile.json').then(r => r.json()),
@@ -777,11 +875,31 @@ async function loadData() {
   state.routes = r;
 }
 
-/* ===============================
-   PASTE PARSERS
-   Defensive regex extraction from
-   pasted ROUVY/Strava activity text.
-   =============================== */
+// ---------------------------------------------------------------------------
+// PASTE PARSERS
+// Defensive regex extraction from pasted ROUVY / Strava activity summaries.
+// The parsers are intentionally permissive — they pull what they can find and
+// leave fields null when they can't. The user verifies in the quick-entry
+// form before saving.
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse a pasted ROUVY or Strava activity summary into a metrics object.
+ *
+ * Recognizes (case-insensitive, formatting-tolerant):
+ *   - Duration: "1:23:45", "1h 23m", "83 min"
+ *   - Distance: "15.11 mi" or "24.3 km" (km auto-converted to miles)
+ *   - Power:    "Avg Power 184", "184 W avg", "NP 199", "Max Power 362"
+ *   - HR:       "Avg HR 159", "Max HR 184"
+ *   - Cadence:  "Avg cadence 86", "Cadence 86 RPM"
+ *   - Intensity: "IF 0.87", "TSS 60"
+ *   - Route/workout name on a `Route:` or `Workout:` line.
+ *
+ * Strips commas first so "1,234 W" parses as 1234.
+ *
+ * @param {string} text raw pasted text
+ * @returns {object} extracted metrics with `null` for missing fields
+ */
 function parseSession(text) {
   const t = (text || '').replace(/,/g, '');
   const out = {};
@@ -825,14 +943,34 @@ function parseSession(text) {
   return out;
 }
 
+/**
+ * Find the prescribed session for today's date, or null if today is off-block.
+ * @returns {object|null} session object from training-plan.json
+ */
 function todaysSession() {
   if (!state.plan) return null;
   return state.plan.sessions.find(s => s.date === state.today) || null;
 }
 
-/* ===============================
-   RENDERERS
-   =============================== */
+// ---------------------------------------------------------------------------
+// RENDERERS
+// One function per screen. Renderers read from `state` and localStorage and
+// write to the DOM. They are idempotent and safe to call repeatedly — the
+// nav layer calls them on tab change.
+// ---------------------------------------------------------------------------
+
+/**
+ * Render the Check-In screen.
+ *
+ * Wires the 5 sliders + RHR input to the live stability dial, then renders
+ * today's prescribed session and the mood-gated guidance bubble. Called on
+ * boot, on every slider input event, and after `saveCheckIn`.
+ *
+ * If today's check-in is already saved, the inputs are pre-populated from
+ * the latest entry so the user can edit instead of re-entering.
+ *
+ * @returns {void}
+ */
 function renderCheckIn() {
   const last = (load(K.checkins, []) || []).slice(-1)[0];
   const inp = {
@@ -905,10 +1043,35 @@ function renderCheckIn() {
   }
 }
 
+/**
+ * HTML-escape a string for safe interpolation into innerHTML.
+ *
+ * Used everywhere we render user-supplied or external data (notes, route
+ * names, paste output). Treats null/undefined as empty string. NEVER skip
+ * this on user-controlled fields — XSS is the risk.
+ *
+ * @param {*} s anything; coerced to string
+ * @returns {string} HTML-safe string
+ */
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+/**
+ * Render the Plan screen — the full 20-day Tulsa Tough block.
+ *
+ * Top of the screen shows the days-to-race countdown, the current block day,
+ * and the active phase. Below that is the phase legend, then a vertical list
+ * of every session. Each session expands on tap to show description, ROUVY
+ * workout/route, cadence target, ERG mode, fueling target, key metrics, the
+ * note line, three suggested ROUVY routes (curated match), and two buttons:
+ * mark done/pending and prefill into the Data quick-entry form.
+ *
+ * Re-rendered on tab open, on completion toggle, and after a quick-entry
+ * prefill so the highlighted "today" stays accurate.
+ *
+ * @returns {void}
+ */
 function renderPlan() {
   const list = $('#plan-list');
   const phases = state.plan.phases;
@@ -993,6 +1156,18 @@ function renderPlan() {
   });
 }
 
+/**
+ * Build the suggested-routes block for a plan session detail panel.
+ *
+ * Maps session type to a tag set, filters the curated `rouvy-routes.json`
+ * library by those tags, drops the route already named in the plan (no
+ * point suggesting it again), and returns the top 3 as inline HTML.
+ *
+ * Returns '' for rest days and when no matches exist.
+ *
+ * @param {object} session session from training-plan.json
+ * @returns {string} HTML fragment
+ */
 function renderRouteSuggestions(session) {
   if (!state.routes) return '';
   const wantTags = {
@@ -1016,16 +1191,41 @@ function renderRouteSuggestions(session) {
   `;
 }
 
+/**
+ * Persist the per-day "completed" overlay to localStorage.
+ *
+ * The plan JSON itself is never mutated to disk (CLAUDE.md rule 1) — instead
+ * we write a thin overlay map of { day: bool } that the boot step reapplies
+ * on top of the loaded plan. This keeps the authoritative file pristine.
+ */
 function saveCompletionOverlay() {
   const overlay = state.plan.sessions.reduce((acc, s) => { acc[s.day] = !!s.completed; return acc; }, {});
   localStorage.setItem(`${NS}.completed`, JSON.stringify(overlay));
 }
+
+/**
+ * Read the completion overlay and apply it to the in-memory `state.plan`.
+ * No-op if no overlay has been saved yet. Called once during boot.
+ */
 function applyCompletionOverlay() {
   const overlay = load(`${NS}.completed`, null);
   if (!overlay) return;
   state.plan.sessions.forEach(s => { if (overlay[s.day] !== undefined) s.completed = overlay[s.day]; });
 }
 
+/**
+ * Render the Log screen — water, supplements, history, stability trend.
+ *
+ * - Water grid: 8 oz cells, total = profile.water_target_oz (100 oz default).
+ *   Plus/minus 8oz buttons mutate `K.log[today].water_oz`.
+ * - Supplements: definitions persist in `K.supplements`; per-day taken state
+ *   is stored under `K.log[today].supplements`.
+ * - History: merged check-ins + sessions, newest first, capped at 30 rows.
+ * - Stability trend: last 14 check-ins as bars; bottom note runs through
+ *   `detectBurstCrashPattern` so the burst-crash watch is visible here too.
+ *
+ * @returns {void}
+ */
 function renderLog() {
   $('#log-date').textContent = fmtDate(state.today);
   const last = (load(K.checkins, []) || []).slice(-1)[0];
@@ -1120,6 +1320,17 @@ function renderLog() {
   }
 }
 
+/**
+ * Render the Profile screen — read-only view of athlete data, zones,
+ * stability thresholds, AI coach key entry, data export/reset, and goals.
+ *
+ * Every value comes from `state.profile` (athlete-profile.json). No
+ * hardcoded numbers (CLAUDE.md rule 5). The API key field is masked and
+ * never echoes the actual key back into the input — it only shows a
+ * "(saved)" placeholder when a key is present.
+ *
+ * @returns {void}
+ */
 function renderProfile() {
   const p = state.profile;
   $('#profile-version').textContent = `v${p.app_version}`;
@@ -1170,9 +1381,24 @@ function renderProfile() {
   if (k) $('#api-key').placeholder = '•'.repeat(20) + ' (saved)';
 }
 
-/* ===============================
-   ACTIONS
-   =============================== */
+// ---------------------------------------------------------------------------
+// ACTIONS
+// User-initiated mutations. Each action persists to localStorage, then
+// triggers the relevant re-render(s). Keep these small — anything more
+// complex than "read inputs, validate, persist, render" should move out.
+// ---------------------------------------------------------------------------
+
+/**
+ * Save today's check-in.
+ *
+ * Reads the slider + RHR values, computes stability via `computeStability`,
+ * and replaces any prior entry for today (so the array always has at most
+ * one entry per date). Refuses to save if RHR is missing — without it the
+ * score is meaningless.
+ *
+ * Triggers re-render of Check-In and Log so the dial, the mood gate, and the
+ * trend bars all update at once.
+ */
 function saveCheckIn() {
   const inp = {
     sleep: +$('#in-sleep').value,
@@ -1194,6 +1420,13 @@ function saveCheckIn() {
   renderLog();
 }
 
+/**
+ * Save the quick-entry session form into `K.sessions`.
+ *
+ * Pulls every field from the form, coerces numbers (empty string -> null),
+ * appends to the sessions array, then clears the inputs. Source is tagged
+ * `'manual'` to distinguish from `'seed-day1'` and future imports.
+ */
 function quickEntrySave() {
   const date = $('#qe-date').value || state.today;
   const day = +$('#qe-day').value || null;
@@ -1217,6 +1450,11 @@ function quickEntrySave() {
   renderLog();
 }
 
+/**
+ * Export everything — profile, check-ins, sessions, daily log, supplements,
+ * completion overlay — as one downloadable JSON file. v1 export format;
+ * v2 will add a PDF option.
+ */
 function exportAll() {
   const data = {
     exported_at: new Date().toISOString(),
@@ -1229,6 +1467,12 @@ function exportAll() {
   };
   download(`cxmxc-export-${state.today}.json`, JSON.stringify(data, null, 2));
 }
+
+/**
+ * Export the log-only subset (check-ins, sessions, daily log) for sharing
+ * with a coach or analysing externally. Excludes the profile and the API
+ * key — the profile is in the repo, the key never leaves the device.
+ */
 function exportLogOnly() {
   const data = {
     exported_at: new Date().toISOString(),
@@ -1238,6 +1482,14 @@ function exportLogOnly() {
   };
   download(`cxmxc-log-${state.today}.json`, JSON.stringify(data, null, 2));
 }
+
+/**
+ * Trigger a browser file download of a text payload.
+ * Uses an Object URL + invisible <a> + click + revoke pattern.
+ *
+ * @param {string} name suggested filename (with extension)
+ * @param {string} text file contents
+ */
 function download(name, text) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], { type:'application/json' }));
@@ -1246,6 +1498,11 @@ function download(name, text) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
 
+/**
+ * Erase today's log entry and today's check-in. Used to start the day over
+ * when the morning numbers were typed wrong. Does not touch sessions, the
+ * plan completion overlay, supplements, or the API key.
+ */
 function resetToday() {
   const all = load(K.log, {});
   delete all[state.today];
@@ -1256,6 +1513,12 @@ function resetToday() {
   renderAll();
 }
 
+/**
+ * Wipe every `cxmxc.*` localStorage key, including the API key and the
+ * completion overlay. Confirms first because this is destructive and
+ * irreversible. Reloads the page after a short delay so the user sees the
+ * toast confirmation.
+ */
 function resetAll() {
   if (!confirm('Wipe ALL local data — check-ins, sessions, log, supplements, key. Cannot undo.')) return;
   Object.values(K).forEach(k => localStorage.removeItem(k));
@@ -1264,22 +1527,49 @@ function resetAll() {
   setTimeout(() => location.reload(), 600);
 }
 
-/* ===============================
-   THEME
-   =============================== */
+// ---------------------------------------------------------------------------
+// THEME
+// Dark is the default. Light mode is a real second theme, not a half-built
+// afterthought — it has its own palette in the CSS at the top of the file.
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply a theme to the document. Updates the `data-theme` attribute (CSS
+ * variables key off it), the toolbar button label, and the address-bar
+ * `theme-color` meta so Android Chrome's UI matches.
+ *
+ * @param {'dark'|'light'} t
+ */
 function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   $('#theme-toggle').textContent = t === 'dark' ? 'DARK' : 'LIGHT';
   document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'dark' ? '#0a0e1a' : '#f3f5fb');
 }
+
+/**
+ * Boot-time theme resolution. Uses the saved preference if any, otherwise
+ * falls back to the OS preference via `prefers-color-scheme`.
+ */
 function initTheme() {
   const saved = localStorage.getItem(K.theme) || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   applyTheme(saved);
 }
 
-/* ===============================
-   NAVIGATION
-   =============================== */
+// ---------------------------------------------------------------------------
+// NAVIGATION
+// All five screens live in the DOM at once; we toggle a single `.active`
+// class instead of mounting/unmounting. This keeps state cheap and lets
+// scroll position survive tab switches.
+// ---------------------------------------------------------------------------
+
+/**
+ * Switch to a named screen and trigger its renderer.
+ *
+ * Each renderer is idempotent and reads fresh state, so calling it on every
+ * tab open is the simplest correct thing — no diff tracking needed.
+ *
+ * @param {'checkin'|'data'|'plan'|'log'|'profile'} name
+ */
 function goto(name) {
   $$('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === name));
   $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.go === name));
@@ -1289,6 +1579,7 @@ function goto(name) {
   if (name === 'checkin') renderCheckIn();
 }
 
+/** Render every screen. Used at boot and after destructive resets. */
 function renderAll() {
   renderCheckIn();
   renderPlan();
@@ -1296,9 +1587,17 @@ function renderAll() {
   renderProfile();
 }
 
-/* ===============================
-   WIRE UP
-   =============================== */
+// ---------------------------------------------------------------------------
+// WIRING
+// All event listeners are registered here, once, at boot. Renderers do NOT
+// install listeners — they only write innerHTML. This keeps event handler
+// count bounded over the lifetime of the page.
+// ---------------------------------------------------------------------------
+
+/**
+ * Install every event listener and populate dynamic select options.
+ * Called exactly once during boot, after data has loaded.
+ */
 function wire() {
   // theme
   $('#theme-toggle').addEventListener('click', () => {
@@ -1397,6 +1696,13 @@ function wire() {
   if (today) sel.value = String(today.day);
 }
 
+/**
+ * Push parsed paste output into the quick-entry form fields.
+ * Only fills fields the parser actually found — never clobbers existing
+ * input with a null.
+ *
+ * @param {object} out result from `parseSession`
+ */
 function fillQuickEntry(out) {
   if (out.duration_min) $('#qe-dur').value = out.duration_min;
   if (out.distance_mi) $('#qe-dist').value = out.distance_mi;
@@ -1406,6 +1712,10 @@ function fillQuickEntry(out) {
   if (out.avg_cadence) $('#qe-cad').value = out.avg_cadence;
 }
 
+/**
+ * Adjust today's water count by `delta` oz. Clamps at 0 (no negative water).
+ * @param {number} delta typically +8 or -8
+ */
 function bumpWater(delta) {
   const all = load(K.log, {});
   const cur = all[state.today] || { water_oz: 0, supplements: [] };
@@ -1415,10 +1725,19 @@ function bumpWater(delta) {
   renderLog();
 }
 
-/* ===============================
-   SEED — Day 1 captured data
-   Only seeded if sessions empty.
-   =============================== */
+// ---------------------------------------------------------------------------
+// SEED DATA — Day 1 captured ride + check-in
+// On first launch (sessions array empty) we seed the two captured Day 1
+// sessions and the green check-in so the user lands on a populated app
+// instead of an empty shell. We never overwrite existing data.
+// ---------------------------------------------------------------------------
+
+/**
+ * Seed Day 1 (2026-05-07) ride sessions + check-in if storage is empty.
+ *
+ * No-op once sessions exist. Runs on every boot, but the early return makes
+ * subsequent boots free.
+ */
 function seedIfEmpty() {
   const sessions = load(K.sessions, []);
   if (sessions.length) return;
@@ -1454,9 +1773,23 @@ function seedIfEmpty() {
   }
 }
 
-/* ===============================
-   BOOT
-   =============================== */
+// ---------------------------------------------------------------------------
+// BOOT
+// Order: theme -> data load -> overlay -> seed -> wire -> render -> SW.
+// If data load fails we replace the body with a hint about file:// vs http://
+// because that's the most common cause when developing locally.
+// ---------------------------------------------------------------------------
+
+/**
+ * Application entry point. Runs once when the module loads.
+ *
+ * Failure handling: if `loadData` throws (CORS / file:// / 404), the app
+ * replaces the body with a developer-friendly message rather than rendering
+ * a half-broken UI. The service worker registration is best-effort and
+ * never fails the boot.
+ *
+ * @returns {Promise<void>}
+ */
 async function boot() {
   initTheme();
   try {
