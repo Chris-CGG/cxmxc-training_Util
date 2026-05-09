@@ -696,6 +696,81 @@
     width: 0%;
   }
 
+  /* =============================================================
+     PHOTO TAB
+     Camera capture + gallery picker → preview → analyze → extracted
+     stats. The capture/pick buttons trigger hidden file inputs; the
+     preview uses object URLs that we revoke after use.
+     ============================================================= */
+  .photo-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .photo-preview {
+    margin-top: 12px;
+    background: var(--bg-elev2);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 8px;
+  }
+  .photo-preview img {
+    width: 100%; height: auto;
+    max-height: 50vh;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #000;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .photo-source-pill {
+    display: inline-block;
+    padding: 3px 10px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent);
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .photo-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .photo-stat {
+    background: var(--bg-elev2);
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .photo-stat .stat-label {
+    display: block;
+  }
+  .photo-stat input {
+    margin-top: 2px;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px dashed var(--border);
+    padding: 2px 0;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; line-height: 1;
+    color: var(--fg);
+    border-radius: 0;
+  }
+  .photo-stat input:focus {
+    outline: 0;
+    border-bottom-color: var(--accent);
+  }
+  .photo-stat.missing {
+    border-color: rgba(255, 200, 87, 0.4);
+    background: rgba(255, 200, 87, 0.06);
+  }
+  .photo-error {
+    background: rgba(255, 107, 107, 0.1);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
   /* Day-detail modal — reuses .modal/.modal-content. Specific bits: */
   #day-detail-content h2 { font-size: 24px; margin-bottom: 4px; }
   .dd-section { margin-bottom: 14px; }
@@ -993,61 +1068,98 @@
 
     <!-- DATA -->
     <section class="screen" data-screen="data">
-      <div class="segmented" role="tablist" aria-label="Activity kind">
-        <button id="seg-scheduled" class="on" data-mode="scheduled">Scheduled Session</button>
-        <button id="seg-unplanned" data-mode="unplanned">Unplanned Activity</button>
+      <div class="segmented" role="tablist" aria-label="Input method">
+        <button id="seg-photo"  class="on" data-mode="photo">📷 Photo</button>
+        <button id="seg-paste"             data-mode="paste">📋 Paste</button>
+        <button id="seg-manual"            data-mode="manual">✏️ Manual</button>
       </div>
 
-      <div id="data-scheduled-host">
-      <div class="card">
-        <div class="card-head"><h2>PASTE FROM STRAVA</h2></div>
-        <p class="small">Paste activity summary text from Strava. The parser pulls duration, distance, avg power, NP, avg HR, cadence.</p>
-        <textarea id="strava-paste" placeholder="Paste Strava activity here…" rows="6"></textarea>
-        <div class="gap"></div>
-        <button class="btn ghost" id="parse-strava">Parse Strava</button>
-        <div id="strava-out" class="coach muted" style="display:none;"></div>
-      </div>
+      <div id="data-photo-host">
+        <div class="card">
+          <div class="card-head"><h2>PHOTOGRAPH ANY DATA SCREEN</h2></div>
+          <p class="small">ROUVY · Strava · Garmin · Wahoo · Any cycling computer or app summary.</p>
 
-      <div class="card">
-        <div class="card-head"><h2>PASTE FROM ROUVY</h2></div>
-        <p class="small">Paste a ROUVY ride summary. The parser pulls the same metrics plus the route name if present.</p>
-        <textarea id="rouvy-paste" placeholder="Paste ROUVY summary here…" rows="6"></textarea>
-        <div class="gap"></div>
-        <button class="btn ghost" id="parse-rouvy">Parse ROUVY</button>
-        <div id="rouvy-out" class="coach muted" style="display:none;"></div>
-      </div>
+          <input type="file" accept="image/*" capture="environment" id="photo-input-camera"  hidden>
+          <input type="file" accept="image/*"                       id="photo-input-gallery" hidden>
 
-      <div class="card">
-        <div class="card-head"><h2>QUICK ENTRY</h2></div>
-        <div class="row">
-          <div>
-            <label class="label">Date</label>
-            <input type="date" id="qe-date" />
+          <div class="photo-actions">
+            <button class="btn ghost" id="photo-take">📷 Take Photo</button>
+            <button class="btn ghost" id="photo-pick">🖼️ Choose from Gallery</button>
           </div>
-          <div>
-            <label class="label">Day</label>
-            <select id="qe-day"></select>
+
+          <div id="photo-preview" class="photo-preview" style="display:none;">
+            <img id="photo-preview-img" alt="Captured cycling data screen" />
+            <div class="btn-row">
+              <button class="btn ghost" id="photo-clear">Clear</button>
+              <button class="btn"       id="photo-analyze">Analyze</button>
+            </div>
           </div>
+
+          <div id="photo-status"  class="coach muted" style="display:none;"></div>
+          <div id="photo-results"                     style="display:none;"></div>
+
+          <p class="small" style="margin-top:12px;color:var(--fg-faint);">
+            Photos are sent to AI for reading and immediately discarded. Only the extracted numbers are saved.
+          </p>
         </div>
-        <div class="gap"></div>
-        <div class="row3">
-          <div><label class="label">Avg Power (W)</label><input type="number" id="qe-power" inputmode="numeric" /></div>
-          <div><label class="label">NP (W)</label><input type="number" id="qe-np" inputmode="numeric" /></div>
-          <div><label class="label">Avg HR</label><input type="number" id="qe-hr" inputmode="numeric" /></div>
-        </div>
-        <div class="gap"></div>
-        <div class="row3">
-          <div><label class="label">Cadence</label><input type="number" id="qe-cad" inputmode="numeric" /></div>
-          <div><label class="label">Duration (min)</label><input type="number" id="qe-dur" inputmode="numeric" /></div>
-          <div><label class="label">Distance (mi)</label><input type="number" id="qe-dist" inputmode="decimal" step="0.1" /></div>
-        </div>
-        <div class="gap"></div>
-        <label class="label">Notes</label>
-        <textarea id="qe-notes" rows="3" placeholder="Subjective notes, gearing issues, fueling, etc."></textarea>
-        <div class="gap"></div>
-        <button class="btn" id="qe-save">Save Session Data</button>
       </div>
-      </div><!-- /#data-scheduled-host -->
+
+      <div id="data-paste-host" style="display:none;">
+        <div class="card">
+          <div class="card-head"><h2>PASTE FROM STRAVA</h2></div>
+          <p class="small">Paste activity summary text from Strava. The parser pulls duration, distance, avg power, NP, avg HR, cadence.</p>
+          <textarea id="strava-paste" placeholder="Paste Strava activity here…" rows="6"></textarea>
+          <div class="gap"></div>
+          <button class="btn ghost" id="parse-strava">Parse Strava</button>
+          <div id="strava-out" class="coach muted" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>PASTE FROM ROUVY</h2></div>
+          <p class="small">Paste a ROUVY ride summary. The parser pulls the same metrics plus the route name if present.</p>
+          <textarea id="rouvy-paste" placeholder="Paste ROUVY summary here…" rows="6"></textarea>
+          <div class="gap"></div>
+          <button class="btn ghost" id="parse-rouvy">Parse ROUVY</button>
+          <div id="rouvy-out" class="coach muted" style="display:none;"></div>
+        </div>
+
+        <p class="small" style="color:var(--fg-faint);text-align:center;">
+          Parsed values populate the Manual tab where you can verify and save.
+        </p>
+      </div>
+
+      <div id="data-manual-host" style="display:none;">
+        <div class="card">
+          <div class="card-head"><h2>QUICK ENTRY</h2></div>
+          <div class="row">
+            <div>
+              <label class="label">Date</label>
+              <input type="date" id="qe-date" />
+            </div>
+            <div>
+              <label class="label">Day</label>
+              <select id="qe-day"></select>
+            </div>
+          </div>
+          <div class="gap"></div>
+          <div class="row3">
+            <div><label class="label">Avg Power (W)</label><input type="number" id="qe-power" inputmode="numeric" /></div>
+            <div><label class="label">NP (W)</label><input type="number" id="qe-np" inputmode="numeric" /></div>
+            <div><label class="label">Avg HR</label><input type="number" id="qe-hr" inputmode="numeric" /></div>
+          </div>
+          <div class="gap"></div>
+          <div class="row3">
+            <div><label class="label">Cadence</label><input type="number" id="qe-cad" inputmode="numeric" /></div>
+            <div><label class="label">Duration (min)</label><input type="number" id="qe-dur" inputmode="numeric" /></div>
+            <div><label class="label">Distance (mi)</label><input type="number" id="qe-dist" inputmode="decimal" step="0.1" /></div>
+          </div>
+          <div class="gap"></div>
+          <label class="label">Notes</label>
+          <textarea id="qe-notes" rows="3" placeholder="Subjective notes, gearing issues, fueling, etc."></textarea>
+          <div class="gap"></div>
+          <button class="btn" id="qe-save">Save Session Data</button>
+        </div>
+      </div>
 
       <div id="data-unplanned-host" style="display:none;">
         <div class="card">
@@ -1971,13 +2083,19 @@ function renderUnplannedBanner() {
 
 // ---- Data-screen segmented toggle ------------------------------------------
 
-/** Switch the Data screen between Scheduled and Unplanned forms. */
+/**
+ * Switch the Data screen between Photo / Paste / Manual input modes.
+ * Each mode corresponds to a single visible host div; the others are
+ * hidden via inline display:none so their forms stay in the DOM
+ * (preserves field state) but stay out of the visual flow.
+ *
+ * @param {'photo'|'paste'|'manual'} mode
+ */
 function setDataMode(mode) {
-  $('#seg-scheduled').classList.toggle('on', mode === 'scheduled');
-  $('#seg-unplanned').classList.toggle('on', mode === 'unplanned');
-  $('#data-scheduled-host').style.display = mode === 'scheduled' ? '' : 'none';
-  $('#data-unplanned-host').style.display = mode === 'unplanned' ? '' : 'none';
-  if (mode === 'unplanned') populateUnplannedFlagSelect();
+  ['photo','paste','manual'].forEach(m => {
+    $('#seg-' + m).classList.toggle('on', m === mode);
+    $('#data-' + m + '-host').style.display = m === mode ? '' : 'none';
+  });
 }
 
 /** Populate the "tied to flag" select with available flagged records. */
@@ -2059,6 +2177,67 @@ function saveUnplannedLog() {
   $('#up-flag-link').value = '';
   populateUnplannedFlagSelect();
   renderLog();
+}
+
+// ---------------------------------------------------------------------------
+// PHOTO TAB — capture + preview state machine
+// Camera/gallery → File → preview Object URL → Analyze button.
+// The base64 data URL is NEVER persisted to localStorage. It lives in
+// `photoState` only as long as the user keeps this photo loaded.
+// API integration lands in the next commit; this commit wires the UI only.
+// ---------------------------------------------------------------------------
+
+/**
+ * In-memory state for the currently-loaded photo on the Photo tab.
+ *   file       — the File object the user selected.
+ *   previewURL — Object URL for the <img>; revoked on clear or replace.
+ *   dataURL    — base64 data URL, populated on Analyze (next commit).
+ * Cleared on tab switch via clearPhoto() if needed; otherwise persists
+ * for the lifetime of the page.
+ */
+const photoState = {
+  file: null,
+  previewURL: null,
+  dataURL: null,
+};
+
+/**
+ * Shared change handler for both camera and gallery file inputs.
+ * Resets the input value at the end so re-selecting the same file
+ * still fires `change`.
+ */
+function onPhotoFileChosen(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  photoSetFile(file);
+  e.target.value = '';
+}
+
+/**
+ * Load a File into photoState and render the preview UI.
+ * @param {File} file
+ */
+function photoSetFile(file) {
+  if (photoState.previewURL) URL.revokeObjectURL(photoState.previewURL);
+  photoState.file = file;
+  photoState.previewURL = URL.createObjectURL(file);
+  photoState.dataURL = null;
+  $('#photo-preview-img').src = photoState.previewURL;
+  $('#photo-preview').style.display = '';
+  $('#photo-status').style.display = 'none';
+  $('#photo-results').style.display = 'none';
+}
+
+/** Clear the current photo and reset the preview UI. */
+function clearPhoto() {
+  if (photoState.previewURL) URL.revokeObjectURL(photoState.previewURL);
+  photoState.file = null;
+  photoState.previewURL = null;
+  photoState.dataURL = null;
+  $('#photo-preview-img').src = '';
+  $('#photo-preview').style.display = 'none';
+  $('#photo-status').style.display = 'none';
+  $('#photo-results').style.display = 'none';
 }
 
 // ---------------------------------------------------------------------------
@@ -3047,7 +3226,8 @@ function wire() {
   // save check-in
   $('#save-checkin').addEventListener('click', saveCheckIn);
 
-  // paste parsers
+  // paste parsers — populate the Manual tab fields then auto-switch so the
+  // user lands on the verify-and-save form instead of staring at the textarea.
   $('#parse-strava').addEventListener('click', () => {
     const out = parseSession($('#strava-paste').value);
     fillQuickEntry(out);
@@ -3055,7 +3235,8 @@ function wire() {
     elt.style.display = 'block';
     elt.classList.remove('muted');
     elt.innerHTML = '<div class="from">PARSED</div>' + JSON.stringify(out, null, 2);
-    toast('Strava parsed');
+    setDataMode('manual');
+    toast('Strava parsed → Manual');
   });
   $('#parse-rouvy').addEventListener('click', () => {
     const out = parseSession($('#rouvy-paste').value);
@@ -3064,7 +3245,8 @@ function wire() {
     elt.style.display = 'block';
     elt.classList.remove('muted');
     elt.innerHTML = '<div class="from">PARSED</div>' + JSON.stringify(out, null, 2);
-    toast('ROUVY parsed');
+    setDataMode('manual');
+    toast('ROUVY parsed → Manual');
   });
 
   // quick entry
@@ -3162,9 +3344,24 @@ function wire() {
     if (e.target.id === 'day-detail-modal') closeDayDetail();
   });
 
-  // ---- Data-screen segmented toggle ----
-  $('#seg-scheduled').addEventListener('click', () => setDataMode('scheduled'));
-  $('#seg-unplanned').addEventListener('click', () => setDataMode('unplanned'));
+  // ---- Data-screen 3-mode segmented toggle ----
+  $('#seg-photo').addEventListener('click',  () => setDataMode('photo'));
+  $('#seg-paste').addEventListener('click',  () => setDataMode('paste'));
+  $('#seg-manual').addEventListener('click', () => setDataMode('manual'));
+
+  // ---- Photo tab — capture / pick / preview / clear ----
+  $('#photo-take').addEventListener('click', () => $('#photo-input-camera').click());
+  $('#photo-pick').addEventListener('click', () => $('#photo-input-gallery').click());
+  $('#photo-input-camera').addEventListener('change',  onPhotoFileChosen);
+  $('#photo-input-gallery').addEventListener('change', onPhotoFileChosen);
+  $('#photo-clear').addEventListener('click', clearPhoto);
+  $('#photo-analyze').addEventListener('click', () => {
+    // Placeholder — wired up in the Vision-API commit. Avoids a dead-button
+    // experience in the meantime.
+    toast('Analyze: API integration in next commit');
+  });
+
+  // ---- Unplanned post-ride form (preserved, accessed via Check-In banner) ----
   $('#up-rpe').addEventListener('input', (e) => { $('#up-rpe-v').textContent = e.target.value; });
   $('#up-save').addEventListener('click', saveUnplannedLog);
   $('#up-flag-link').addEventListener('change', (e) => {
