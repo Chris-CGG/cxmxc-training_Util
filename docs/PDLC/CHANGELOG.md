@@ -7,8 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Added — PDLC framework
 - PDLC framework documentation in `/docs/PDLC/` — phases, gates, Claude protocol, cxmxc reference implementation, changelog, new-project template, README.
+
+### Added — Phase 0 / 1 / 2 backfill (2026-05-08)
+- `docs/DISCOVERY.md` — problem statement, user profile, constraints, success metrics, A1-A10 assumptions, out-of-scope list, open Phase 6+ questions.
+- `docs/TECH_DECISIONS.md` — ten decisions D1-D10 each with chosen / rejected / why / when-to-revisit.
+- `docs/architecture.md` — Mermaid ERD, component graph, two state-flow sequence diagrams, lifecycle state machine, external dependencies, security/privacy notes.
+- `README.md` — populated from project context (was a one-line stub since the scaffold commit).
+
+### Added — Phase 4 hardening
+- `tests/engines.test.mjs` — 25 smoke tests across all four engine modules. Runs with `npm test` (`node --test tests/*.test.mjs`); <100 ms total.
+- `package.json` — populated. Was an empty placeholder; node imports now work without copying source to /tmp.
+- `docs/SECURITY.md` — Phase 4 security checklist: 7 pass + 2 tracked gaps (no CSP header, HTTP on LAN dev). Console-error sweep procedure included.
+- `docs/ACCESSIBILITY.md` — WCAG 2.1 AA audit: 10 strong items + 5 tracked gaps for v0.2.0. TalkBack / keyboard / color-vision / touch procedures for real-device verification.
+
+### Added — Phase 5 deployment
+- `.github/workflows/deploy.yml` — GitHub Pages deploy workflow. Runs `npm test`, then publishes the static site. Activates after one push to main + Pages source toggle.
+- Profile screen → "FEEDBACK" card with one-click link to repository GitHub Issues.
+- `docs/PERFORMANCE.md` — Lighthouse-mobile baseline procedure with concrete acceptance criteria. Real-device results table pending the live deployment.
+
+### Changed
+- `docs/PDLC/CXMXC_REFERENCE.md` — phase status snapshot updated to reflect closed gaps; retroactive-fixes section restructured into four buckets (closed in backfill pass / closed during v0.1.0 build / pending real-device verification / tracked for v0.2.0+).
+
+### Pending (real-device verification, not blocking)
+- Console-error sweep on the Android device (procedure in `docs/SECURITY.md`).
+- TalkBack / keyboard / color-vision / touch walks (procedures in `docs/ACCESSIBILITY.md`).
+- Lighthouse-mobile baseline on the deployed build (procedure in `docs/PERFORMANCE.md`).
 
 ## [0.1.0] — 2026-05-08
 
