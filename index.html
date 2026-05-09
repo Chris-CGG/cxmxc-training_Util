@@ -1573,6 +1573,9 @@ import {
   INTENSITY_LABELS,
   TIME_OF_DAY_LABELS,
 } from './src/engine/unplanned.js';
+import {
+  extractCyclingData,
+} from './src/engine/vision.js';
 
 // ---------------------------------------------------------------------------
 // NAMESPACE & STORAGE KEYS
@@ -2238,6 +2241,79 @@ function clearPhoto() {
   $('#photo-preview').style.display = 'none';
   $('#photo-status').style.display = 'none';
   $('#photo-results').style.display = 'none';
+}
+
+/**
+ * Read a File via FileReader and return its base64 payload + media type.
+ * The data URL header (everything before the comma) is stripped — the
+ * Vision API wants only the base64 body.
+ *
+ * @param {File} file
+ * @returns {Promise<{base64:string, mediaType:string}>}
+ */
+function fileToImageData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataURL = String(reader.result || '');
+      const commaIdx = dataURL.indexOf(',');
+      if (commaIdx < 0) return reject(new Error('Could not read image'));
+      const header = dataURL.slice(0, commaIdx);
+      const base64 = dataURL.slice(commaIdx + 1);
+      const mt = header.match(/^data:([^;]+)/);
+      resolve({ base64, mediaType: mt ? mt[1] : 'image/jpeg' });
+    };
+    reader.onerror = () => reject(new Error('FileReader error'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Run the loaded photo through the Vision API extraction. This commit
+ * wires the call end-to-end and shows the raw extracted JSON below the
+ * preview. The next commit replaces the raw dump with editable stat
+ * cards and a save flow.
+ */
+async function analyzePhoto() {
+  if (!photoState.file) {
+    toast('No photo loaded');
+    return;
+  }
+  const apiKey = localStorage.getItem(K.apiKey) || '';
+  if (!apiKey) {
+    toast('Add an Anthropic API key in Profile first');
+    return;
+  }
+
+  const status = $('#photo-status');
+  const results = $('#photo-results');
+  results.style.display = 'none';
+  status.classList.add('muted');
+  status.style.display = '';
+  status.innerHTML = '<div class="from">VISION</div>Reading your data <span class="typing-dots"><span></span><span></span><span></span></span>';
+
+  let result;
+  try {
+    const { base64, mediaType } = await fileToImageData(photoState.file);
+    result = await extractCyclingData({ apiKey, imageBase64: base64, mediaType });
+  } catch (err) {
+    result = { ok: false, error: 'Local error: ' + err.message };
+  }
+
+  if (!result.ok) {
+    status.innerHTML = '<div class="from">VISION</div>' + escapeHtml(result.error || 'Extraction failed.');
+    return;
+  }
+
+  status.style.display = 'none';
+  results.style.display = '';
+  // Raw JSON dump. Replaced by editable stat cards in the next commit.
+  results.innerHTML = `
+    <div class="card">
+      <div class="card-head"><h3>EXTRACTED (raw)</h3><span class="photo-source-pill">${escapeHtml(result.json.source || 'Unknown')}</span></div>
+      <pre style="font-size:11px; white-space:pre-wrap; word-break:break-word; color:var(--fg-dim); margin:0;">${escapeHtml(JSON.stringify(result.json, null, 2))}</pre>
+    </div>
+  `;
 }
 
 // ---------------------------------------------------------------------------
@@ -3355,11 +3431,7 @@ function wire() {
   $('#photo-input-camera').addEventListener('change',  onPhotoFileChosen);
   $('#photo-input-gallery').addEventListener('change', onPhotoFileChosen);
   $('#photo-clear').addEventListener('click', clearPhoto);
-  $('#photo-analyze').addEventListener('click', () => {
-    // Placeholder — wired up in the Vision-API commit. Avoids a dead-button
-    // experience in the meantime.
-    toast('Analyze: API integration in next commit');
-  });
+  $('#photo-analyze').addEventListener('click', analyzePhoto);
 
   // ---- Unplanned post-ride form (preserved, accessed via Check-In banner) ----
   $('#up-rpe').addEventListener('input', (e) => { $('#up-rpe-v').textContent = e.target.value; });

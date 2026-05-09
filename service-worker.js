@@ -19,7 +19,7 @@
  */
 
 /** Cache name. Bump on any ASSETS change so old caches get purged. */
-const CACHE = 'cxmxc-v3';
+const CACHE = 'cxmxc-v4';
 
 /**
  * Files precached at install. Keep this list aligned with what `index.html`
@@ -39,6 +39,7 @@ const ASSETS = [
   './src/engine/adaptation.js',
   './src/engine/ai-coach.js',
   './src/engine/unplanned.js',
+  './src/engine/vision.js',
 ];
 
 // --- install: precache the app shell ---
