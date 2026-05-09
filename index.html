@@ -128,7 +128,7 @@
 
   /* Tab bar */
   .tabbar {
-    display: grid; grid-template-columns: repeat(5, 1fr);
+    display: grid; grid-template-columns: repeat(6, 1fr);
     background: var(--bg-elev);
     border-top: 1px solid var(--border);
     padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
@@ -571,6 +571,150 @@
   .badge.flag { background: rgba(255, 107, 107, 0.15); color: var(--red); }
 
   /* =============================================================
+     CALENDAR
+     Month-view grid: 7 columns × 5-6 rows. Each day is a button
+     that opens the day-detail modal. Visual states use absolutely-
+     positioned dots/checks/stars so the cell stays a clean square.
+     ============================================================= */
+
+  .cal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; gap: 12px;
+  }
+  .cal-header h2 {
+    font-size: 22px; flex: 1; text-align: center;
+  }
+  .cal-dow {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 4px; margin-bottom: 6px;
+  }
+  .cal-dow span {
+    text-align: center;
+    font-size: 10px; letter-spacing: 0.12em;
+    color: var(--fg-dim); text-transform: uppercase;
+    padding: 4px 0;
+  }
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    background: var(--bg-elev2);
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    position: relative;
+    padding: 4px 6px;
+    font: inherit; color: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.1s ease, border-color 0.18s ease;
+  }
+  .cal-day:active { transform: scale(0.95); }
+  .cal-day-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px; line-height: 1; color: var(--fg);
+  }
+  .cal-day.out-of-block { opacity: 0.32; cursor: default; }
+  .cal-day.out-of-block:active { transform: none; }
+  .cal-day.today {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .cal-day.race-day {
+    border-color: #ffcf3d;
+    background: linear-gradient(135deg, rgba(255, 207, 61, 0.12), var(--bg-elev2));
+  }
+  .cal-day.past-incomplete .cal-day-num { color: var(--fg-faint); }
+
+  /* Training-type dot in the bottom-right corner */
+  .cal-day-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    position: absolute; bottom: 6px; right: 6px;
+  }
+  .cal-day-dot.threshold  { background: #ffa14d; }                 /* orange */
+  .cal-day-dot.endurance  { background: var(--green); }
+  .cal-day-dot.vo2        { background: var(--red); }
+  .cal-day-dot.recovery   { background: #5fb3ff; }                 /* blue */
+  .cal-day-dot.rest       { background: var(--fg-faint); }
+  .cal-day-dot.benchmark  { background: var(--accent-2); }
+
+  /* Completion checkmark in the top-right corner. Replaces the dot
+     visually because both can't be in the same corner. */
+  .cal-day-check {
+    position: absolute; top: 4px; right: 6px;
+    font-size: 10px; line-height: 1;
+    color: var(--green);
+  }
+
+  /* Secondary indicator: an unplanned activity was logged on this day. */
+  .cal-day-unp {
+    position: absolute; bottom: 6px; left: 6px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-2);
+    box-shadow: 0 0 0 1px var(--bg-elev2);
+  }
+
+  /* Race-day star — gold, top-right, replaces check on race day. */
+  .cal-day-star {
+    position: absolute; top: 3px; right: 5px;
+    font-size: 11px; line-height: 1;
+    color: #ffcf3d;
+  }
+
+  /* Legend strip below the grid */
+  .cal-legend {
+    display: flex; flex-wrap: wrap; gap: 8px 12px;
+    margin-top: 12px;
+    font-size: 10px; color: var(--fg-dim);
+    letter-spacing: 0.04em;
+  }
+  .cal-legend-item {
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .cal-legend .cal-day-dot {
+    position: static; display: inline-block;
+  }
+  .cal-day-unp-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-2); display: inline-block;
+  }
+  .cal-day-star-mini { color: #ffcf3d; font-size: 12px; }
+
+  /* Block progress bar */
+  .cal-progress-bar {
+    height: 8px; border-radius: 4px;
+    background: var(--bg-elev2);
+    overflow: hidden;
+    border: 1px solid var(--border-soft);
+  }
+  .cal-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-radius: 4px;
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 0%;
+  }
+
+  /* Day-detail modal — reuses .modal/.modal-content. Specific bits: */
+  #day-detail-content h2 { font-size: 24px; margin-bottom: 4px; }
+  .dd-section { margin-bottom: 14px; }
+  .dd-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 16px; padding: 6px 0;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 12px;
+  }
+  .dd-row:last-child { border-bottom: 0; }
+  .dd-row .k {
+    color: var(--fg-dim); text-transform: uppercase;
+    letter-spacing: 0.06em; font-size: 10px;
+    flex: 0 0 auto;
+  }
+  .dd-row .v { color: var(--fg); text-align: right; min-width: 0; word-break: break-word; }
+  .dd-empty { color: var(--fg-faint); font-size: 12px; font-style: italic; }
+
+  /* =============================================================
      MOTION
      Animation + transitions. Targeted, not gratuitous. The whole
      block is gated behind prefers-reduced-motion at the bottom so
@@ -999,6 +1143,54 @@
       <div id="plan-list"></div>
     </section>
 
+    <!-- CALENDAR -->
+    <section class="screen" data-screen="calendar">
+      <div class="card flat">
+        <div class="cal-header">
+          <button class="iconbtn" id="cal-prev" aria-label="Previous month">‹</button>
+          <h2 id="cal-month-label">—</h2>
+          <button class="iconbtn" id="cal-next" aria-label="Next month">›</button>
+        </div>
+        <div class="cal-dow">
+          <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-legend">
+          <span class="cal-legend-item"><span class="cal-day-dot threshold"></span>Threshold</span>
+          <span class="cal-legend-item"><span class="cal-day-dot endurance"></span>Endurance</span>
+          <span class="cal-legend-item"><span class="cal-day-dot vo2"></span>VO2</span>
+          <span class="cal-legend-item"><span class="cal-day-dot recovery"></span>Recovery</span>
+          <span class="cal-legend-item"><span class="cal-day-dot rest"></span>Rest</span>
+          <span class="cal-legend-item"><span class="cal-day-dot benchmark"></span>Benchmark</span>
+          <span class="cal-legend-item"><span class="cal-day-unp-dot"></span>Unplanned</span>
+          <span class="cal-legend-item"><span class="cal-day-star-mini">★</span>Race</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>BLOCK PROGRESS</h3>
+        <div class="cal-progress-bar">
+          <div class="cal-progress-fill" id="cal-progress-fill"></div>
+        </div>
+        <div class="small" id="cal-progress-text" style="margin-top:6px;">0 of 20 days complete</div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="stat">
+            <div class="stat-label">Tulsa Tough</div>
+            <div class="stat-value" id="cal-days-tulsa">--</div>
+            <div class="small" id="cal-days-tulsa-sub">days to go</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">EHOTS RGV</div>
+            <div class="stat-value" id="cal-days-ehots">--</div>
+            <div class="small" id="cal-days-ehots-sub">days to go</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- LOG -->
     <section class="screen" data-screen="log">
       <div class="card">
@@ -1103,12 +1295,20 @@
     <button class="tab active" data-go="checkin"><span class="tab-icon">●</span>Check-In</button>
     <button class="tab" data-go="data"><span class="tab-icon">▤</span>Data</button>
     <button class="tab" data-go="plan"><span class="tab-icon">▣</span>Plan</button>
+    <button class="tab" data-go="calendar"><span class="tab-icon">▦</span>Calendar</button>
     <button class="tab" data-go="log"><span class="tab-icon">≡</span>Log</button>
     <button class="tab" data-go="profile"><span class="tab-icon">◆</span>Profile</button>
   </nav>
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Calendar day-detail bottom sheet -->
+<div class="modal" id="day-detail-modal" role="dialog" aria-modal="true" aria-labelledby="dd-title">
+  <div class="modal-content" id="day-detail-content">
+    <!-- populated by openDayDetail() -->
+  </div>
+</div>
 
 <!-- Pre-ride flag modal: form view + impact preview view (one modal, two screens) -->
 <div class="modal" id="unplanned-modal" role="dialog" aria-modal="true" aria-labelledby="unp-title">
@@ -2307,6 +2507,308 @@ function renderProfile() {
 }
 
 // ---------------------------------------------------------------------------
+// CALENDAR — month-grid renderer + day-detail modal
+// Reads the plan + localStorage at render time. No new persistent state
+// beyond `calState.cursor` (the month being viewed), which is in-memory.
+// ---------------------------------------------------------------------------
+
+/** In-memory cursor for the visible month. Defaults to today's month. */
+const calState = {
+  cursor: null, // { year, month } — set on first render
+};
+
+const DOW_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+const MONTH_LABELS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+/**
+ * Pad two-digit numbers (1 → "01"). Used for ISO date assembly.
+ * @param {number} n
+ * @returns {string}
+ */
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+/** Assemble `YYYY-MM-DD` from year + month + day, treating month as 0-11. */
+function isoDate(year, month, day) {
+  return `${year}-${pad2(month + 1)}-${pad2(day)}`;
+}
+
+/**
+ * Build the 42-cell grid (6 rows × 7 cols) for a given year/month.
+ * Cells outside the requested month are flagged `inMonth: false` so the
+ * renderer can mute them.
+ *
+ * @param {number} year e.g. 2026
+ * @param {number} month 0-11
+ * @returns {Array<{date:string, day:number, inMonth:boolean}>}
+ */
+function buildCalendarMonth(year, month) {
+  const firstWeekday = new Date(year, month, 1).getDay();   // 0 = Sun
+  const daysInMonth  = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+
+  // Leading days from previous month
+  if (firstWeekday > 0) {
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    for (let i = firstWeekday - 1; i >= 0; i--) {
+      const d = prevMonthDays - i;
+      const py = month === 0 ? year - 1 : year;
+      const pm = month === 0 ? 11 : month - 1;
+      cells.push({ date: isoDate(py, pm, d), day: d, inMonth: false });
+    }
+  }
+
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ date: isoDate(year, month, d), day: d, inMonth: true });
+  }
+
+  // Trailing days to fill 42 cells
+  let trailing = 1;
+  while (cells.length < 42) {
+    const ny = month === 11 ? year + 1 : year;
+    const nm = month === 11 ? 0 : month + 1;
+    cells.push({ date: isoDate(ny, nm, trailing), day: trailing, inMonth: false });
+    trailing++;
+  }
+
+  return cells;
+}
+
+/**
+ * Annotate a cell with everything the renderer needs: scheduled session,
+ * check-in record, logged sessions, unplanned activities, race-day flag,
+ * past/today flags. Reads from in-memory plan + localStorage; pure.
+ *
+ * @param {{date:string, day:number, inMonth:boolean}} cell
+ * @returns {object} extended cell
+ */
+function annotateCalendarCell(cell) {
+  const overlay = buildAdjustmentOverlay();
+  const planSession = state.plan.sessions.find(s => s.date === cell.date);
+  const session = planSession ? effectiveSession(planSession, overlay) : null;
+
+  const checkin = (load(K.checkins, []) || []).find(x => x.date === cell.date) || null;
+  const logged_sessions = (load(K.sessions, []) || []).filter(x => x.date === cell.date);
+  const unplanned = (load(K.unplanned, []) || []).filter(x => x.date === cell.date);
+
+  const goal = state.profile.goals.find(g => g.priority === 1);
+  const isRaceDay = !!(goal && cell.date === goal.date);
+
+  const ehots = state.profile.goals.find(g => g.priority === 2);
+  const isEhotsDay = !!(ehots && cell.date === ehots.date);
+
+  return {
+    ...cell,
+    session,
+    checkin,
+    logged_sessions,
+    unplanned,
+    isRaceDay,
+    isEhotsDay,
+    isToday: cell.date === state.today,
+    isPast: cell.date < state.today,
+    completed: !!(session && session.completed),
+    hasUnplannedActivity: unplanned.some(u => u.state === 'logged' || u.state === 'flagged'),
+  };
+}
+
+/**
+ * Render the entire Calendar screen — header, grid, legend, progress bar,
+ * goal countdowns. Idempotent; safe to call on every tab-open.
+ */
+function renderCalendar() {
+  if (!calState.cursor) {
+    const now = new Date(state.today + 'T00:00:00');
+    calState.cursor = { year: now.getFullYear(), month: now.getMonth() };
+  }
+
+  const { year, month } = calState.cursor;
+  $('#cal-month-label').textContent = `${MONTH_LABELS[month]} ${year}`;
+
+  const cells = buildCalendarMonth(year, month).map(annotateCalendarCell);
+  const grid = $('#cal-grid');
+  grid.innerHTML = cells.map(c => renderCalendarCell(c)).join('');
+
+  // Wire day-cell taps. Out-of-block cells are inert.
+  grid.querySelectorAll('.cal-day').forEach(el => {
+    if (el.classList.contains('out-of-block')) return;
+    el.addEventListener('click', () => openDayDetail(el.dataset.date));
+  });
+
+  // Block progress bar — count completed sessions across the whole plan,
+  // not just the visible month.
+  const total = state.plan.sessions.length;
+  const completed = state.plan.sessions.filter(s => s.completed).length;
+  const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
+  $('#cal-progress-fill').style.width = pct + '%';
+  $('#cal-progress-text').textContent = `${completed} of ${total} days complete`;
+
+  // Goal countdowns
+  const tulsa = state.profile.goals.find(g => g.priority === 1);
+  const ehots = state.profile.goals.find(g => g.priority === 2);
+  if (tulsa) {
+    const dtt = daysBetween(state.today, tulsa.date);
+    $('#cal-days-tulsa').textContent = dtt >= 0 ? dtt : 'past';
+    $('#cal-days-tulsa-sub').textContent = dtt >= 0 ? 'days to go' : tulsa.date;
+  }
+  if (ehots) {
+    const dte = daysBetween(state.today, ehots.date);
+    $('#cal-days-ehots').textContent = dte >= 0 ? dte : 'past';
+    $('#cal-days-ehots-sub').textContent = dte >= 0 ? 'days to go' : ehots.date;
+  }
+}
+
+/**
+ * Render a single day cell as an HTML string. Pure; takes an annotated cell,
+ * returns the markup the grid renders.
+ *
+ * @param {object} c annotated cell from `annotateCalendarCell`
+ * @returns {string}
+ */
+function renderCalendarCell(c) {
+  const cls = ['cal-day'];
+  if (!c.inMonth) cls.push('out-of-block');
+  if (c.isToday) cls.push('today');
+  if (c.isRaceDay) cls.push('race-day');
+  if (c.isPast && c.session && !c.completed && c.session.type !== 'rest') cls.push('past-incomplete');
+
+  // Type dot — only for cells that have a scheduled session
+  const dot = c.session ? `<span class="cal-day-dot ${c.session.badge || c.session.type}"></span>` : '';
+
+  // Top-right indicator: race star wins over check
+  let topRight = '';
+  if (c.isRaceDay) topRight = '<span class="cal-day-star" aria-label="Race day">★</span>';
+  else if (c.completed) topRight = '<span class="cal-day-check" aria-label="Completed">✓</span>';
+
+  // Bottom-left indicator: unplanned activity logged or flagged for this day
+  const unp = c.hasUnplannedActivity ? '<span class="cal-day-unp" aria-label="Unplanned activity"></span>' : '';
+
+  return `<button class="${cls.join(' ')}" data-date="${c.date}" type="button">
+    <span class="cal-day-num">${c.day}</span>
+    ${dot}${topRight}${unp}
+  </button>`;
+}
+
+/** Move the visible month by ±1. */
+function shiftMonth(delta) {
+  let { year, month } = calState.cursor;
+  month += delta;
+  while (month < 0)  { month += 12; year -= 1; }
+  while (month > 11) { month -= 12; year += 1; }
+  calState.cursor = { year, month };
+  renderCalendar();
+}
+
+/**
+ * Populate the day-detail modal with the given date's data and open it.
+ * Quick-action buttons (log session, check in) only appear for today
+ * and future dates.
+ */
+function openDayDetail(dateISO) {
+  const cell = annotateCalendarCell({ date: dateISO, day: +dateISO.slice(8, 10), inMonth: true });
+  const html = renderDayDetailHTML(cell);
+  $('#day-detail-content').innerHTML = html;
+
+  $('#dd-close').addEventListener('click', closeDayDetail);
+  const goCheckin = $('#dd-go-checkin'); if (goCheckin) goCheckin.addEventListener('click', () => { closeDayDetail(); goto('checkin'); });
+  const goData = $('#dd-go-data'); if (goData) goData.addEventListener('click', () => {
+    closeDayDetail();
+    if (cell.session) {
+      const sel = $('#qe-day');
+      if (sel) sel.value = String(cell.session.day);
+      $('#qe-date').value = dateISO;
+    }
+    goto('data');
+  });
+
+  $('#day-detail-modal').classList.add('open');
+}
+
+/** Close the day-detail modal. */
+function closeDayDetail() {
+  $('#day-detail-modal').classList.remove('open');
+}
+
+/** Build the day-detail innerHTML for a given annotated cell. */
+function renderDayDetailHTML(c) {
+  const dateLabel = fmtDate(c.date);
+  const session = c.session;
+  const planDay = session ? `Day ${session.day}` : 'Off-block';
+
+  const sessionBlock = session ? `
+    <div class="dd-section">
+      <h3>SESSION</h3>
+      <div class="day-title">${escapeHtml(session.title)}</div>
+      <div class="day-meta">${session.duration_min ? session.duration_min + ' min · ' : ''}${escapeHtml(session.target_intensity || '')}${session.target_cadence_rpm ? ' · ' + escapeHtml(session.target_cadence_rpm) + ' rpm' : ''}</div>
+      <div class="gap"></div>
+      <div class="small">${escapeHtml(session.description || '')}</div>
+      ${session.rouvy_workout ? `<div class="dd-row"><span class="k">ROUVY Workout</span><span class="v">${escapeHtml(session.rouvy_workout)}</span></div>` : ''}
+      ${session.rouvy_route ? `<div class="dd-row"><span class="k">ROUVY Route</span><span class="v">${escapeHtml(session.rouvy_route)}</span></div>` : ''}
+      <div class="dd-row"><span class="k">Cadence Target</span><span class="v">${escapeHtml(session.target_cadence_rpm || '—')}</span></div>
+      <div class="dd-row"><span class="k">ERG Mode</span><span class="v">${session.erg_mode ? 'ON' : 'OFF'}</span></div>
+      <div class="dd-row"><span class="k">Fueling</span><span class="v">${session.fueling_target_carbs_hr ?? 0} g carbs/hr</span></div>
+      ${session.completed ? `<div class="dd-row"><span class="k">Status</span><span class="v">✓ Completed</span></div>` : ''}
+    </div>
+  ` : `<div class="dd-section"><div class="dd-empty">No prescribed session for this date.</div></div>`;
+
+  const checkinBlock = c.checkin ? `
+    <div class="dd-section">
+      <h3>CHECK-IN</h3>
+      <div class="dd-row"><span class="k">Stability</span><span class="v">${c.checkin.score} · <span class="pill ${c.checkin.band}">${c.checkin.band.toUpperCase()}</span></span></div>
+      <div class="dd-row"><span class="k">RHR</span><span class="v">${c.checkin.rhr}</span></div>
+      <div class="dd-row"><span class="k">Sleep</span><span class="v">${c.checkin.sleep}/10</span></div>
+      <div class="dd-row"><span class="k">Energy</span><span class="v">${c.checkin.energy}/10</span></div>
+      <div class="dd-row"><span class="k">Mood</span><span class="v">${c.checkin.mood}/10</span></div>
+    </div>
+  ` : '';
+
+  const loggedBlock = c.logged_sessions.length ? `
+    <div class="dd-section">
+      <h3>LOGGED RIDES</h3>
+      ${c.logged_sessions.map(s => `
+        <div class="dd-row"><span class="k">${escapeHtml(s.source || 'manual')}</span><span class="v">${s.avg_power_w || '-'}W avg · ${s.np_w || '-'}NP · ${s.avg_hr || '-'}HR · ${s.avg_cadence || '-'}rpm · ${s.duration_min || '-'}min</span></div>
+        ${s.tss ? `<div class="dd-row"><span class="k">TSS</span><span class="v">${s.tss}</span></div>` : ''}
+        ${s.notes ? `<div class="small" style="padding:4px 0;">${escapeHtml(s.notes)}</div>` : ''}
+      `).join('')}
+    </div>
+  ` : '';
+
+  const unpBlock = c.unplanned.length ? `
+    <div class="dd-section">
+      <h3>UNPLANNED</h3>
+      ${c.unplanned.map(u => `
+        <div class="dd-row"><span class="k">${escapeHtml(activityTypeLabel(u.type))}</span><span class="v">${u.estimated.duration_min}min · ${escapeHtml(intensityLabel(u.estimated.intensity))} · TSS ${u.estimated.tss}</span></div>
+        <div class="dd-row"><span class="k">State</span><span class="v">${u.state}${u.ripple ? ' · ' + u.ripple.state : ''}</span></div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  // Quick actions — today + future only
+  const showActions = !c.isPast || c.isToday;
+  const actionsBlock = showActions ? `
+    <div class="btn-row">
+      ${c.isToday ? '<button class="btn ghost" id="dd-go-checkin">Check In</button>' : ''}
+      <button class="btn ghost" id="dd-go-data">Log This Session →</button>
+    </div>
+  ` : '';
+
+  return `
+    <div class="card-head">
+      <div>
+        <h2 id="dd-title">${escapeHtml(dateLabel.toUpperCase())}</h2>
+        <div class="small">${planDay}${c.isRaceDay ? ' · ★ RACE DAY' : ''}${c.isToday ? ' · TODAY' : ''}</div>
+      </div>
+      <button class="iconbtn" id="dd-close">CLOSE</button>
+    </div>
+    ${sessionBlock}
+    ${checkinBlock}
+    ${loggedBlock}
+    ${unpBlock}
+    ${actionsBlock}
+  `;
+}
+
+// ---------------------------------------------------------------------------
 // ACTIONS
 // User-initiated mutations. Each action persists to localStorage, then
 // triggers the relevant re-render(s). Keep these small — anything more
@@ -2499,6 +3001,7 @@ function goto(name) {
   $$('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === name));
   $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.go === name));
   if (name === 'plan') renderPlan();
+  if (name === 'calendar') renderCalendar();
   if (name === 'log') renderLog();
   if (name === 'profile') renderProfile();
   if (name === 'checkin') renderCheckIn();
@@ -2508,6 +3011,7 @@ function goto(name) {
 function renderAll() {
   renderCheckIn();
   renderPlan();
+  renderCalendar();
   renderLog();
   renderProfile();
 }
@@ -2649,6 +3153,13 @@ function wire() {
   // Click outside modal content closes it
   $('#unplanned-modal').addEventListener('click', (e) => {
     if (e.target.id === 'unplanned-modal') closeUnplannedModal();
+  });
+
+  // ---- Calendar wiring ----
+  $('#cal-prev').addEventListener('click', () => shiftMonth(-1));
+  $('#cal-next').addEventListener('click', () => shiftMonth(1));
+  $('#day-detail-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'day-detail-modal') closeDayDetail();
   });
 
   // ---- Data-screen segmented toggle ----
