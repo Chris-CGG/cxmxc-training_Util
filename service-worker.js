@@ -23,8 +23,11 @@
  *  The v0.2.1 QA fixes (RHR input rewrite, mobile overflow audit, photo
  *  gallery upload, public/private profile split) all rode on v4 without
  *  a cache bump, so users on v4 were still being served the pre-fix
- *  shell from their existing cache. v5 closes that gap. */
-const CACHE = 'cxmxc-v5';
+ *  shell from their existing cache. v5 closes that gap.
+ *  v6: timezone fix for todayISO() — the previous shell used UTC dates
+ *  and showed tomorrow's session for athletes in US timezones during
+ *  evening hours. */
+const CACHE = 'cxmxc-v6';
 
 /**
  * Files precached at install. Keep this list aligned with what `index.html`

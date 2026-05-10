@@ -1792,8 +1792,15 @@ const $ = (sel, root=document) => root.querySelector(sel);
 /** querySelectorAll as array. @param {string} sel @param {ParentNode} [root=document] */
 const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-/** Today's date in `YYYY-MM-DD` (device local day). @returns {string} */
-const todayISO = () => new Date().toISOString().slice(0,10);
+/** Today's date in `YYYY-MM-DD`, in the device's LOCAL timezone.
+ *  v0.2.2 fix: previously used new Date().toISOString().slice(0,10) which
+ *  returns UTC, so a US-Mountain Saturday evening reads as Sunday in UTC
+ *  and the app showed tomorrow's prescribed session. The local-date
+ *  construction matches the device clock the athlete actually uses. */
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 /**
  * Format an ISO date for compact display, e.g. "Thu, May 7".
