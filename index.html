@@ -3850,6 +3850,10 @@ function wire() {
     if (cleaned !== e.target.value) e.target.value = cleaned;
     renderCheckIn();
   });
+  // Belt-and-suspenders for Android touch: tapping the live-readout span
+  // next to the input also focuses the input. Covers any edge case where
+  // the input element itself misses a tap (e.g. a sibling absorbs it).
+  $('#rhr-current').addEventListener('click', () => $('#in-rhr').focus());
 
   // save check-in
   $('#save-checkin').addEventListener('click', saveCheckIn);

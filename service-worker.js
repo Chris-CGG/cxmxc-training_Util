@@ -18,8 +18,13 @@
  * Android Chrome whenever this file changes.
  */
 
-/** Cache name. Bump on any ASSETS change so old caches get purged. */
-const CACHE = 'cxmxc-v4';
+/** Cache name. Bump on any ASSETS change so old caches get purged.
+ *  v5: forces every installed PWA to refetch the post-v0.2.1 shell.
+ *  The v0.2.1 QA fixes (RHR input rewrite, mobile overflow audit, photo
+ *  gallery upload, public/private profile split) all rode on v4 without
+ *  a cache bump, so users on v4 were still being served the pre-fix
+ *  shell from their existing cache. v5 closes that gap. */
+const CACHE = 'cxmxc-v5';
 
 /**
  * Files precached at install. Keep this list aligned with what `index.html`
