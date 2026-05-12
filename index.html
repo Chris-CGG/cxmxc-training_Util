@@ -470,6 +470,103 @@ input[type="range"]::-moz-range-thumb {
 }
 .unit-toggle button.on { background: var(--accent); color: white; }
 
+/* ============= GOALS SCREEN ============= */
+.goal-card { padding-bottom: 14px; }
+.goal-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px; margin-bottom: 4px;
+}
+.goal-head h2 { line-height: 1.1; }
+.goal-head .flag { font-size: 22px; }
+.goal-meta-line { margin-top: 6px; font-size: 12px; color: var(--text-dim); }
+
+.metric-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.metric-row:last-child { border-bottom: 0; }
+.metric-label {
+  font-size: 12px; letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.metric-meta {
+  display: flex; justify-content: space-between; gap: 8px;
+  margin-top: 6px;
+  font-size: 11px; color: var(--text-dim);
+}
+.metric-history {
+  margin-top: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: var(--text-dim);
+  background: var(--surface2);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.metric-history .spark {
+  display: inline-block;
+  width: 100%; height: 18px;
+  background: var(--bg);
+  border-radius: 3px;
+  margin-bottom: 4px;
+}
+
+.progress-bar {
+  height: 8px; border-radius: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.progress-bar.overall { height: 10px; margin-top: 4px; }
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.progress-fill.green  { background: var(--green); }
+.progress-fill.yellow { background: var(--yellow); }
+.progress-fill.red    { background: var(--red); }
+
+/* Modal — reused for Add Goal */
+.modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.62);
+  display: none;
+  align-items: flex-end;
+  z-index: 200;
+}
+.modal.open { display: flex; animation: fadeIn 0.18s ease; }
+.modal-content {
+  width: 100%; max-width: 100vw;
+  max-height: 90vh; overflow-y: auto; overflow-x: hidden;
+  background: var(--surface);
+  border-radius: 16px 16px 0 0;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes slideUp { from { transform: translateY(40px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+.iconbtn {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px;
+  color: var(--text); font-size: 16px;
+  min-height: 40px;
+}
+.checkbox-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.checkbox-row:last-child { border-bottom: 0; }
+.checkbox-row input[type="checkbox"] {
+  width: 22px; height: 22px; min-height: 22px; padding: 0;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+.checkbox-row .field { flex: 1 1 auto; min-width: 0; }
+.checkbox-row input[type="text"] { font-size: 14px; padding: 8px 12px; min-height: 40px; }
+
 /* VS Target rows */
 .vs-row {
   display: flex; justify-content: space-between; align-items: baseline;
@@ -769,11 +866,11 @@ input[type="range"]::-moz-range-thumb {
 
     <!-- ════════════════════ GOALS ════════════════════ -->
     <section class="screen" data-screen="goals">
-      <div class="card coming-card">
-        <div class="ico">◆</div>
-        <h2>RACE GOALS</h2>
-        <p class="sub">Tulsa Tough + EHOTS progress cards with metric tracking.<br/>Ships in the commit after Log.</p>
-      </div>
+      <div id="goals-list"></div>
+      <button class="btn ghost" id="add-goal-btn">+ ADD GOAL</button>
+      <p class="small" style="text-align:center; margin-top:12px; color:var(--text-dim);">
+        Long-press any goal card to delete it.
+      </p>
     </section>
 
   </main>
@@ -786,6 +883,63 @@ input[type="range"]::-moz-range-thumb {
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Add Goal modal -->
+<div class="modal" id="goal-modal" role="dialog" aria-modal="true" aria-labelledby="goal-modal-title">
+  <div class="modal-content">
+    <div class="card-head">
+      <h2 id="goal-modal-title">NEW GOAL</h2>
+      <button class="iconbtn" id="goal-modal-close" aria-label="Close">×</button>
+    </div>
+
+    <label class="label" for="g-name">Goal Name</label>
+    <input type="text" id="g-name" placeholder="e.g. Lotoja 2027" autocomplete="off" />
+
+    <div class="gap"></div>
+    <label class="label" for="g-date">Event Date</label>
+    <input type="date" id="g-date" />
+
+    <div class="gap"></div>
+    <label class="label" for="g-distance">Distance (miles)</label>
+    <input type="text" inputmode="numeric" pattern="[0-9]*" id="g-distance" autocomplete="off" />
+
+    <div class="gap"></div>
+    <label class="label" for="g-category">Category / Type</label>
+    <input type="text" id="g-category" placeholder="Road Fondo / MTB / Crit / ..." autocomplete="off" />
+
+    <div class="divider"></div>
+    <label class="label">Metrics to track</label>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="m-wkg" />
+      <label for="m-wkg" class="field">W/kg target</label>
+      <input type="text" inputmode="decimal" pattern="[0-9.]*" id="m-wkg-target" placeholder="2.8" style="max-width:80px;" />
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="m-cadence-on" />
+      <label for="m-cadence-on" class="field">Cadence target (RPM)</label>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="m-cadence-target" placeholder="92" style="max-width:80px;" />
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="m-distance-on" />
+      <label for="m-distance-on" class="field">Distance target (mi)</label>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="m-distance-target" placeholder="—" style="max-width:80px;" />
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="m-hr-on" />
+      <label for="m-hr-on" class="field">HR ceiling (BPM)</label>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="m-hr-target" placeholder="160" style="max-width:80px;" />
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="m-custom-on" />
+      <input type="text" id="m-custom-name" placeholder="Custom metric name" class="field" />
+      <input type="text" id="m-custom-target" placeholder="target" style="max-width:80px;" />
+    </div>
+
+    <div class="gap"></div>
+    <button class="btn gradient" id="save-new-goal">Save Goal</button>
+  </div>
+</div>
 
 <script type="module">
 /* ============================================================
@@ -1460,6 +1614,7 @@ function saveSession() {
   const arr = load(K.sessions, []);
   arr.push(record);
   save(K.sessions, arr);
+  updateGoalsFromSessions(); // refresh metric bests after each save
   toast('Session saved');
 }
 
@@ -1611,6 +1766,301 @@ function wireLogScreen() {
 }
 
 // =============================================================
+// GOALS SCREEN — cards + progress bars + update-from-sessions
+// =============================================================
+
+/**
+ * Seed the two pre-configured goals on first launch. Pulls baseline
+ * values from the hardcoded ATHLETE block per the MVP spec. Idempotent —
+ * does nothing once any goals exist.
+ */
+function seedGoalsIfEmpty() {
+  const arr = load(K.goals, []);
+  if (arr.length) return;
+  save(K.goals, [
+    {
+      id: 'tulsa_2026',
+      name: 'Tulsa Tough Ace Peloton',
+      date: '2026-06-06',
+      distance_mi: 103,
+      category: 'Road Fondo',
+      metrics: [
+        { key: 'wkg',          label: 'Sustained W/kg',     current: ATHLETE.wkg,             target: 2.8, unit: 'W/kg', history: [] },
+        { key: 'cadence',      label: 'Cadence (sustained)', current: ATHLETE.cadence_baseline, target: 92,  unit: 'RPM',  history: [] },
+        { key: 'longest_ride', label: 'Longest ride',        current: 25,                      target: 103, unit: 'mi',   history: [] },
+        { key: 'fueling',      label: 'Fueling discipline',  current: null,                    target: null, unit: 'g/hr', qualitative: true, note: 'Target: 60-80g carbs/hr', history: [] },
+      ],
+    },
+    {
+      id: 'ehots_2026',
+      name: 'EHOTS Rio Grande Valley',
+      date: '2026-07-05',
+      distance_mi: 50,
+      category: 'MTB',
+      metrics: [
+        { key: 'wkg',         label: 'Sustained W/kg',     current: ATHLETE.wkg, target: 2.7, unit: 'W/kg', history: [] },
+        { key: 'longest_mtb', label: 'Longest MTB ride',   current: 15,          target: 50,  unit: 'mi',   history: [] },
+        { key: 'technical',   label: 'Technical confidence', current: null,      target: null, qualitative: true, note: 'Singletrack reading + line choice', history: [] },
+      ],
+    },
+  ]);
+}
+
+/**
+ * Walk all saved sessions and update each goal metric if a new best
+ * exists. Best-of semantics so a single bad ride doesn't drag the
+ * "longest ride" or "W/kg" gauge down. Called after every saveSession.
+ */
+function updateGoalsFromSessions() {
+  const sessions = load(K.sessions, []) || [];
+  const goals = load(K.goals, []) || [];
+  let touched = false;
+
+  for (const g of goals) {
+    for (const m of (g.metrics || [])) {
+      if (m.qualitative || m.target == null) continue;
+
+      let best = m.current ?? 0;
+      let updated = false;
+
+      if (m.key === 'wkg') {
+        // Best W/kg from sessions with at least 45 min of effort
+        for (const s of sessions) {
+          if ((s.duration_min || 0) >= 45 && s.avg_power_w) {
+            const w = s.avg_power_w / ATHLETE.weight_kg;
+            if (w > best) { best = w; updated = true; }
+          }
+        }
+        if (updated) { m.current = +best.toFixed(2); m.history.push({ date: state.today, value: m.current }); touched = true; }
+      } else if (m.key === 'cadence' || m.key === 'cadence_90') {
+        for (const s of sessions) {
+          if ((s.duration_min || 0) >= 60 && s.avg_cadence_rpm) {
+            if (s.avg_cadence_rpm > best) { best = s.avg_cadence_rpm; updated = true; }
+          }
+        }
+        if (updated) { m.current = best; m.history.push({ date: state.today, value: best }); touched = true; }
+      } else if (m.key === 'longest_ride' || m.key === 'longest_mtb' || m.key === 'distance') {
+        for (const s of sessions) {
+          if ((s.distance_mi || 0) > best) { best = s.distance_mi; updated = true; }
+        }
+        if (updated) { m.current = +best.toFixed(1); m.history.push({ date: state.today, value: m.current }); touched = true; }
+      } else if (m.key === 'hr') {
+        // HR ceiling — track session avg HR (informational, no "best of")
+        const recent = sessions.filter(s => s.avg_hr_bpm).slice(-1)[0];
+        if (recent && recent.avg_hr_bpm !== m.current) {
+          m.current = recent.avg_hr_bpm;
+          m.history.push({ date: recent.date, value: recent.avg_hr_bpm });
+          touched = true;
+        }
+      }
+      // Custom metrics: no auto-update — user adjusts manually
+    }
+  }
+
+  if (touched) save(K.goals, goals);
+}
+
+/**
+ * Render one goal card. Metrics with target render a progress bar
+ * coloured by completion percentage; qualitative metrics show a
+ * note and a flat yellow bar (placeholder for "needs work").
+ */
+function renderGoalCard(g) {
+  const daysAway = daysBetween(state.today, g.date);
+  const dateLabel = new Date(g.date + 'T00:00:00').toLocaleDateString(undefined, {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+  const dayLine = daysAway > 0
+    ? `${daysAway} days away`
+    : daysAway === 0 ? 'TODAY' : `${Math.abs(daysAway)} days ago`;
+
+  const metricsHTML = (g.metrics || []).map((m, i) => renderMetricRow(m, g.id, i)).join('');
+
+  // Overall readiness = avg of completion % for quantitative metrics
+  const quant = (g.metrics || []).filter(m => !m.qualitative && m.target);
+  const overall = quant.length
+    ? Math.round(quant.reduce((s, m) => s + Math.min(100, ((m.current || 0) / m.target) * 100), 0) / quant.length)
+    : 0;
+  const overallCls = overall >= 80 ? 'green' : overall >= 40 ? 'yellow' : 'red';
+
+  return `
+    <div class="card goal-card" data-goal-id="${escapeHtml(g.id)}">
+      <div class="goal-head">
+        <h2>${escapeHtml(g.name)}</h2>
+        <span class="flag" aria-hidden="true">🏁</span>
+      </div>
+      <div class="goal-meta-line">${escapeHtml(dateLabel)} · ${escapeHtml(dayLine)}</div>
+      <div class="goal-meta-line">${g.distance_mi != null ? g.distance_mi + ' miles' : ''}${g.category ? ' · ' + escapeHtml(g.category) : ''}</div>
+
+      <h3 style="margin-top:14px;">READINESS METRICS</h3>
+      ${metricsHTML || '<div class="small">No metrics tracked yet.</div>'}
+
+      <div class="gap"></div>
+      <div class="small" style="display:flex;justify-content:space-between;">
+        <span>Overall readiness</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);">${overall}%</span>
+      </div>
+      <div class="progress-bar overall"><div class="progress-fill ${overallCls}" style="width:${overall}%"></div></div>
+    </div>
+  `;
+}
+
+/** Render one metric row inside a goal card. */
+function renderMetricRow(m, goalId, idx) {
+  if (m.qualitative) {
+    return `
+      <div class="metric-row" data-goal-id="${escapeHtml(goalId)}" data-metric-idx="${idx}">
+        <div class="metric-label">${escapeHtml(m.label)}</div>
+        <div class="progress-bar"><div class="progress-fill yellow" style="width:25%"></div></div>
+        <div class="metric-meta"><span>${escapeHtml(m.note || 'Needs work')}</span><span class="muted">qualitative</span></div>
+        <div class="metric-history" hidden></div>
+      </div>
+    `;
+  }
+  const cur = m.current ?? 0;
+  const pct = m.target ? Math.min(100, Math.round((cur / m.target) * 100)) : 0;
+  const cls = pct >= 80 ? 'green' : pct >= 40 ? 'yellow' : 'red';
+  const gap = +(m.target - cur).toFixed(2);
+  const unit = m.unit || '';
+
+  return `
+    <div class="metric-row" data-goal-id="${escapeHtml(goalId)}" data-metric-idx="${idx}">
+      <div class="metric-label">${escapeHtml(m.label)}</div>
+      <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>
+      <div class="metric-meta">
+        <span>${cur} → ${m.target} ${escapeHtml(unit)}</span>
+        <span class="muted">${gap > 0 ? `Gap ${gap} ${escapeHtml(unit)}` : 'On target ✓'}</span>
+      </div>
+      <div class="metric-history" hidden></div>
+    </div>
+  `;
+}
+
+/** Render the entire Goals screen. Idempotent; called on tab open + post-save. */
+function renderGoalsScreen() {
+  updateGoalsFromSessions(); // ensure metrics reflect latest sessions
+  const goals = load(K.goals, []) || [];
+  const host = $('#goals-list');
+  if (!goals.length) {
+    host.innerHTML = '<div class="card coming-card"><div class="ico">◆</div><h2>NO GOALS YET</h2><p class="sub">Tap "+ ADD GOAL" to start tracking.</p></div>';
+    return;
+  }
+  host.innerHTML = goals.map(renderGoalCard).join('');
+
+  // Wire metric tap-to-expand history (last 5 values)
+  host.querySelectorAll('.metric-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const goalId = row.dataset.goalId;
+      const idx = +row.dataset.metricIdx;
+      const g = goals.find(x => x.id === goalId);
+      const m = g && g.metrics ? g.metrics[idx] : null;
+      const hist = row.querySelector('.metric-history');
+      if (!hist) return;
+      if (!hist.hidden) { hist.hidden = true; return; }
+      const recent = (m?.history || []).slice(-5);
+      hist.innerHTML = recent.length
+        ? recent.map(h => `<div>${h.date}: ${h.value}${m.unit ? ' ' + escapeHtml(m.unit) : ''}</div>`).join('')
+        : '<div>No history yet — log a session to populate.</div>';
+      hist.hidden = false;
+    });
+  });
+
+  // Wire long-press delete on each goal card
+  host.querySelectorAll('.goal-card').forEach(card => {
+    wireLongPress(card, () => {
+      const gid = card.dataset.goalId;
+      if (!confirm('Delete this goal?')) return;
+      const remaining = (load(K.goals, []) || []).filter(g => g.id !== gid);
+      save(K.goals, remaining);
+      toast('Goal deleted');
+      renderGoalsScreen();
+    });
+  });
+}
+
+/**
+ * Reusable long-press wiring — fires `handler` after `ms` ms of held
+ * touch / mouse-down on `el`. Cancels on release or pointer leave.
+ */
+function wireLongPress(el, handler, ms = 700) {
+  let timer = null;
+  const start = () => { timer = setTimeout(handler, ms); };
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  ['mousedown', 'touchstart'].forEach(ev => el.addEventListener(ev, start));
+  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(ev => el.addEventListener(ev, cancel));
+}
+
+// ---- Add Goal modal ----
+
+function openGoalModal() {
+  // Reset form
+  $('#g-name').value = '';
+  $('#g-date').value = '';
+  $('#g-distance').value = '';
+  $('#g-category').value = '';
+  ['m-wkg', 'm-cadence-on', 'm-distance-on', 'm-hr-on', 'm-custom-on'].forEach(id => $('#' + id).checked = false);
+  ['m-wkg-target', 'm-cadence-target', 'm-distance-target', 'm-hr-target', 'm-custom-name', 'm-custom-target'].forEach(id => $('#' + id).value = '');
+  $('#goal-modal').classList.add('open');
+  setTimeout(() => $('#g-name').focus(), 250);
+}
+function closeGoalModal() { $('#goal-modal').classList.remove('open'); }
+
+function saveNewGoal() {
+  const name = $('#g-name').value.trim();
+  const date = $('#g-date').value;
+  if (!name)  { toast('Goal name required.'); return; }
+  if (!date)  { toast('Event date required.'); return; }
+
+  const metrics = [];
+  if ($('#m-wkg').checked) {
+    const target = +($('#m-wkg-target').value || 2.8);
+    metrics.push({ key: 'wkg', label: 'Sustained W/kg', current: ATHLETE.wkg, target, unit: 'W/kg', history: [] });
+  }
+  if ($('#m-cadence-on').checked) {
+    const target = +($('#m-cadence-target').value || 92);
+    metrics.push({ key: 'cadence', label: 'Cadence', current: ATHLETE.cadence_baseline, target, unit: 'RPM', history: [] });
+  }
+  if ($('#m-distance-on').checked) {
+    const target = +($('#m-distance-target').value || 0);
+    metrics.push({ key: 'longest_ride', label: 'Longest ride', current: 0, target, unit: 'mi', history: [] });
+  }
+  if ($('#m-hr-on').checked) {
+    const target = +($('#m-hr-target').value || 0);
+    metrics.push({ key: 'hr', label: 'HR ceiling', current: 0, target, unit: 'BPM', history: [] });
+  }
+  if ($('#m-custom-on').checked) {
+    const cName = $('#m-custom-name').value.trim();
+    const cTarget = +($('#m-custom-target').value || 0);
+    if (cName) metrics.push({ key: 'custom_' + Date.now(), label: cName, current: 0, target: cTarget, unit: '', history: [] });
+  }
+
+  const goal = {
+    id: 'goal_' + Date.now().toString(36),
+    name,
+    date,
+    distance_mi: +($('#g-distance').value || 0) || null,
+    category: $('#g-category').value.trim() || '',
+    metrics,
+  };
+  const arr = load(K.goals, []);
+  arr.push(goal);
+  save(K.goals, arr);
+  toast('Goal added · ' + name);
+  closeGoalModal();
+  renderGoalsScreen();
+}
+
+function wireGoalsScreen() {
+  $('#add-goal-btn').addEventListener('click', openGoalModal);
+  $('#goal-modal-close').addEventListener('click', closeGoalModal);
+  $('#save-new-goal').addEventListener('click', saveNewGoal);
+  // Click outside modal-content to close
+  $('#goal-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'goal-modal') closeGoalModal();
+  });
+}
+
+// =============================================================
 // THEME + NAVIGATION
 // =============================================================
 function applyTheme(t) {
@@ -1629,6 +2079,10 @@ function initTheme() {
 function goto(name) {
   $$('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === name));
   $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.go === name));
+  // Re-render data-driven screens on each open so they reflect latest state
+  if (name === 'goals') renderGoalsScreen();
+  if (name === 'log')   $('#log-date').textContent = fmtDate(state.today);
+  if (name === 'today') renderTodayScreen();
 }
 
 // =============================================================
@@ -1665,6 +2119,9 @@ function wire() {
   // Log screen
   wireLogScreen();
   $('#log-date').textContent = fmtDate(state.today);
+
+  // Goals screen
+  wireGoalsScreen();
 }
 
 // =============================================================
@@ -1678,9 +2135,11 @@ async function boot() {
     $('#session-block').innerHTML = '<p class="small">Plan failed to load. Serve over http://, not file://.</p>';
   }
   seedIfEmpty();
+  seedGoalsIfEmpty();
   wire();
   renderCountdown();
   renderTodayScreen();
+  renderGoalsScreen();
 
   // Service worker registration (cached by GitHub Pages)
   if ('serviceWorker' in navigator) {
