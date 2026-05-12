@@ -1,13 +1,13 @@
 {
   "name": "CxMxC Training",
   "short_name": "CxMxC",
-  "description": "Single-athlete training PWA — mood-gated check-in, 20-day block view, AI coach, photo-extracted ride data.",
+  "description": "Single-athlete training PWA — daily check-in, session log, race-goal progress.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#0a0e1a",
-  "background_color": "#0a0e1a",
+  "theme_color": "#0a0a0f",
+  "background_color": "#0a0a0f",
   "categories": ["fitness", "health", "sports"],
   "icons": [
     {

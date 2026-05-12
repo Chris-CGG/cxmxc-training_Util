@@ -20,14 +20,15 @@
 
 /** Cache name. Bump on any ASSETS change so old caches get purged.
  *  v5: forces every installed PWA to refetch the post-v0.2.1 shell.
- *  The v0.2.1 QA fixes (RHR input rewrite, mobile overflow audit, photo
- *  gallery upload, public/private profile split) all rode on v4 without
- *  a cache bump, so users on v4 were still being served the pre-fix
- *  shell from their existing cache. v5 closes that gap.
- *  v6: timezone fix for todayISO() — the previous shell used UTC dates
- *  and showed tomorrow's session for athletes in US timezones during
- *  evening hours. */
-const CACHE = 'cxmxc-v6';
+ *  v6: timezone fix for todayISO().
+ *  v7 (MVP v2.0): clean 3-screen rebuild (Today / Log / Goals).
+ *      The old multi-screen + engine-module shell is gone; the new
+ *      shell is fully self-contained and reads the training plan
+ *      directly. Engine modules in src/engine/ remain on disk
+ *      (parked for Sprint 2) but the new shell does not import
+ *      them. Cache bump invalidates every installed v0.2.x PWA so
+ *      users land on the rebuilt UI on next launch. */
+const CACHE = 'cxmxc-v7';
 
 /**
  * Files precached at install. Keep this list aligned with what `index.html`

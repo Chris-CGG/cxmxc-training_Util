@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-05-12 — MVP v2.0 clean rebuild
+
+Scope-locked rebuild of the product down to three screens (Today / Log / Goals). Replaces the v0.2.x multi-screen + engine-module shell with a single self-contained `index.html`. Engine modules in `src/engine/` and the data files in `src/data/` are intentionally untouched — parked for Sprint 2. Version jumps from 0.2.x to 2.0.0 to mark the deliberate clean break.
+
+### Added — Today screen
+- Sticky top header: Bebas-Neue "CxMxC" logo, race countdown ("N DAYS TO TULSA TOUGH"), theme toggle.
+- Morning Check-In card: resting-HR input (`type="text" inputmode="numeric"`) with live readout + colour-coded state vs. baseline 56 BPM; five 1–10 sliders (Sleep, Legs, Mood, Carrying Weight, Soreness) at 48 px touch target; three-state readiness indicator (🟢 READY / 🟡 REDUCED / 🔴 PROTECT) computed from HR + slider average with hard overrides for soreness/load ≥ 8.
+- Today's Session card: reads `src/data/training-plan.json` by date; renders title, duration, intensity, cadence target, ERG flag, fueling target, ROUVY workout/route (tap-to-copy). Yellow/red readiness derives a softened "adapted" view (Protection Day on red).
+- Submit → summary card replaces form with the readiness badge + RHR delta + 5-cell slider grid. Long-press reset clears today's check-in.
+
+### Added — Log screen
+- Session-Type toggle: 📋 Prescribed / 🚴 Unplanned.
+- Data-Source tabs: 📷 Photo / 📋 Paste / ✏️ Manual.
+- Photo: camera + gallery file inputs, preview thumb, "stored locally only" note. No Vision API call in MVP (engines parked).
+- Paste: textarea + regex extraction → chip pills (power, HR, cadence, duration, distance, TSS, IF). Auto-populates Manual fields.
+- Manual: 2-col grid of `inputmode="numeric"`/`decimal` inputs + 10-button RPE grid + mi/km distance toggle.
+- VS Target card: compares actuals to today's prescribed targets (Cadence, Duration, Power). Verdict emojis ✅ ⚠ ❌.
+- Save Session → `cxmxc_sessions` localStorage.
+- **Copy for Claude**: spec-exact markdown report (Day N · days to Tulsa, Check-in, Session, Performance with % of FTP, VS Targets, Goal Progress) copied to clipboard with fallback for older Android Chrome.
+
+### Added — Goals screen
+- Pre-seeded with Tulsa Tough Ace Peloton + EHOTS RGV, each with quantitative metrics (W/kg, cadence, longest ride) and qualitative ones (fueling discipline, technical confidence).
+- Per-metric progress bars coloured by completion %; tap-to-expand last-5-history strip.
+- Overall-readiness summary bar at the bottom of each card.
+- `updateGoalsFromSessions()` recomputes "best of" values on every session save and on every Goals render.
+- Add Goal modal: name + date + distance + category + 5 selectable metric types (W/kg / Cadence / Distance / HR ceiling / Custom). Slides up from the bottom.
+- Long-press a goal card to delete (with confirm dialog).
+
+### Changed
+- New `cxmxc_*` localStorage namespace (separate from the old `cxmxc.*` keys so v0.2.x data doesn't pollute v2.0 state during testing).
+- New colour palette: `--bg #0a0a0f` / `--surface #111118` / `--accent #7c6fff` etc.
+- `manifest.json` description + theme/background colours aligned to the new palette and feature set.
+- Service-worker cache bumped to `cxmxc-v7` so every installed v0.2.x PWA picks up the rebuilt shell on next launch.
+
+### Preserved (not touched in this build)
+- `src/data/*` — all JSON files untouched per dev rule 1.
+- `src/engine/*` — stability, adaptation, ai-coach, unplanned, vision modules remain on disk; not imported by the new shell. Sprint 2 will bring them back.
+- All `/docs/` documentation.
+- The gitignored `src/data/athlete-private.json` and the prior security audit results.
+
 ### Security
 - **Public / private athlete-profile split (pre-public-repo audit).** Identity, biometric, breathing-condition, and mental-health fields moved out of the committed `src/data/athlete-profile.json` and into a gitignored `src/data/athlete-private.json`. Committed `athlete-private.example.json` documents the shape for forks. The shell merges both at boot via `mergePrivateProfile()`; without the private file the public profile is used as-is and identity fields render as `—`. `src/engine/ai-coach.js` `buildSystemPrompt` and `askCoach` now require a `profile` argument — closes a long-standing leak of CLAUDE.md rule 5 (the prompt was hardcoding the athlete's name + medical conditions). Engine smoke tests grew from 25 to 28 (added: profile-required, identity-from-profile, conditional medical lines). Full audit and move-list in `docs/SECURITY.md`.
 
@@ -119,6 +159,7 @@ First captured release. Tagged retroactively at the close of the initial Tulsa T
 - v0.1.0 marks "MVP shipped to its single user" — it is not yet a public deployment. See `CXMXC_REFERENCE.md` Phase 5 for the gap list.
 
 [Unreleased]: ./CHANGELOG.md
+[2.0.0]: ./CHANGELOG.md#200--2026-05-12--mvp-v20-clean-rebuild
 [0.2.1]: ./CHANGELOG.md#021--2026-05-09--qa-fixes
 [0.2.0]: ./CHANGELOG.md#020--2026-05-09
 [0.1.0]: ./CHANGELOG.md#010--2026-05-08
