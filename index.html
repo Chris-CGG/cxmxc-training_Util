@@ -381,6 +381,111 @@ input[type="range"]::-moz-range-thumb {
   margin-top: 6px; line-height: 1.5;
 }
 
+/* Segmented toggle (Log screen — kind + input tabs) */
+.seg-toggle {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 4px; gap: 4px;
+}
+.seg-btn {
+  background: transparent; border: 0;
+  padding: 10px 6px;
+  min-height: 44px;
+  color: var(--text-dim);
+  font-size: 12px; letter-spacing: 0.04em;
+  border-radius: 7px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.seg-btn.on { background: var(--accent); color: white; }
+
+/* Photo capture buttons + preview */
+.photo-actions {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-top: 6px;
+}
+.photo-actions .btn { margin-top: 0; }
+.photo-preview {
+  margin-top: 12px; padding: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.photo-preview img {
+  width: 100%; height: auto; max-height: 40vh;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #000;
+  display: block;
+}
+.photo-attached-line {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--green); font-size: 13px;
+  margin-top: 8px;
+}
+
+/* Parser output chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text);
+}
+.chip strong { color: var(--accent); margin-left: 4px; }
+
+/* Manual entry — 2-col grid for compactness */
+.field-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.field-grid > div { min-width: 0; }
+.field-grid .full { grid-column: span 2; }
+
+/* RPE 1-10 button grid */
+.rpe-grid {
+  display: grid; grid-template-columns: repeat(10, 1fr);
+  gap: 4px; margin-top: 6px;
+}
+.rpe-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 0;
+  min-height: 40px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px; color: var(--text);
+  text-align: center;
+}
+.rpe-btn.on { background: var(--accent); border-color: var(--accent); color: white; }
+
+/* Unit toggle (mi/km) */
+.unit-toggle {
+  display: inline-flex; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 6px;
+  overflow: hidden; margin-left: 8px;
+  vertical-align: middle;
+}
+.unit-toggle button {
+  background: transparent; border: 0; padding: 4px 10px;
+  font-size: 10px; letter-spacing: 0.06em; color: var(--text-dim);
+}
+.unit-toggle button.on { background: var(--accent); color: white; }
+
+/* VS Target rows */
+.vs-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px; padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.vs-row:last-child { border-bottom: 0; }
+.vs-row .k {
+  font-size: 10px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-dim);
+  flex: 0 0 auto;
+}
+.vs-row .v { text-align: right; min-width: 0; word-break: break-word; }
+.vs-row .v .ico { margin-left: 4px; }
+
 /* Bottom tab bar — exactly 3 tabs */
 .tabbar {
   display: grid; grid-template-columns: repeat(3, 1fr);
@@ -562,10 +667,103 @@ input[type="range"]::-moz-range-thumb {
 
     <!-- ════════════════════ LOG ════════════════════ -->
     <section class="screen" data-screen="log">
-      <div class="card coming-card">
-        <div class="ico">▤</div>
-        <h2>LOG SESSION</h2>
-        <p class="sub">Photo upload · Paste parser · Manual entry · Copy for Claude.<br/>Ships in the next commit of this MVP build.</p>
+      <div class="card">
+        <div class="card-head">
+          <h2>LOG SESSION</h2>
+          <span class="muted" id="log-date">—</span>
+        </div>
+
+        <label class="label">Session Type</label>
+        <div class="seg-toggle" id="log-kind-toggle" role="tablist" aria-label="Session type">
+          <button class="seg-btn on" data-kind="prescribed">📋 Prescribed</button>
+          <button class="seg-btn"    data-kind="unplanned">🚴 Unplanned</button>
+        </div>
+
+        <div class="gap"></div>
+
+        <label class="label">Data Source</label>
+        <div class="seg-toggle" id="log-input-toggle" role="tablist" aria-label="Input method">
+          <button class="seg-btn on" data-tab="photo">📷 Photo</button>
+          <button class="seg-btn"    data-tab="paste">📋 Paste</button>
+          <button class="seg-btn"    data-tab="manual">✏️ Manual</button>
+        </div>
+
+        <div class="gap"></div>
+
+        <!-- PHOTO TAB -->
+        <div id="log-tab-photo" class="log-tab">
+          <input type="file" accept="image/*" capture="environment" id="photo-camera" hidden>
+          <input type="file" accept="image/*"                       id="photo-gallery" hidden>
+          <div class="photo-actions">
+            <button class="btn ghost" id="photo-take">📷 Take Photo</button>
+            <button class="btn ghost" id="photo-pick">🖼️ Upload from Gallery</button>
+          </div>
+          <div id="photo-preview-host"></div>
+          <p class="small" style="margin-top:12px;">Photo read locally · not stored remotely. Fill in metrics below or switch to <a href="#" id="photo-to-manual">Manual</a> entry.</p>
+        </div>
+
+        <!-- PASTE TAB -->
+        <div id="log-tab-paste" class="log-tab" hidden>
+          <label class="label" for="paste-text">Paste ROUVY or Strava summary</label>
+          <textarea id="paste-text" rows="6" placeholder="Paste ROUVY or Strava data here…&#10;&#10;e.g. Avg Power: 187W · HR: 158 · Cadence: 88rpm · Duration: 75min · TSS: 67 · IF: 0.73"></textarea>
+          <div class="gap"></div>
+          <button class="btn ghost" id="parse-btn">Extract Metrics</button>
+          <div id="paste-chips" class="chips"></div>
+        </div>
+
+        <!-- MANUAL TAB -->
+        <div id="log-tab-manual" class="log-tab" hidden>
+          <div class="field-grid">
+            <div>
+              <label class="label" for="m-power">Avg Power (W)</label>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="m-power" autocomplete="off" />
+            </div>
+            <div>
+              <label class="label" for="m-hr">Avg HR (BPM)</label>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" id="m-hr" autocomplete="off" />
+            </div>
+            <div>
+              <label class="label" for="m-cad">Avg Cadence (RPM)</label>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" id="m-cad" autocomplete="off" />
+            </div>
+            <div>
+              <label class="label" for="m-dur">Duration (min)</label>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="m-dur" autocomplete="off" />
+            </div>
+            <div>
+              <label class="label" for="m-dist">Distance
+                <span class="unit-toggle" id="m-dist-unit">
+                  <button type="button" class="on" data-unit="mi">MI</button>
+                  <button type="button" data-unit="km">KM</button>
+                </span>
+              </label>
+              <input type="text" inputmode="decimal" pattern="[0-9.]*" id="m-dist" autocomplete="off" />
+            </div>
+            <div>
+              <label class="label" for="m-tss">TSS (optional)</label>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="m-tss" autocomplete="off" />
+            </div>
+            <div class="full">
+              <label class="label" for="m-if">IF (optional)</label>
+              <input type="text" inputmode="decimal" pattern="[0-9.]*" id="m-if" autocomplete="off" />
+            </div>
+            <div class="full">
+              <label class="label">RPE</label>
+              <div class="rpe-grid" id="rpe-grid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VS Target — only shows when there's data to compare -->
+      <div class="card" id="vs-target-card" hidden>
+        <h3>VS TARGET</h3>
+        <div id="vs-target-rows"></div>
+      </div>
+
+      <div class="card">
+        <button class="btn gradient" id="save-session">SAVE SESSION</button>
+        <button class="btn ghost" id="copy-for-claude">📋 Copy for Claude</button>
       </div>
     </section>
 
@@ -963,6 +1161,456 @@ function seedIfEmpty() {
 }
 
 // =============================================================
+// LOG SCREEN — session-in-progress + paste parser + Copy for Claude
+// =============================================================
+
+/**
+ * The session currently being composed on the Log screen. Lives in
+ * memory only — persisted to localStorage on "Save Session". All
+ * three input tabs (photo / paste / manual) write into this object.
+ */
+const currentLog = {
+  date: state.today,
+  type: 'prescribed',         // 'prescribed' | 'unplanned'
+  source: 'manual',           // 'photo' | 'paste' | 'manual'
+  prescribed_session: '',
+  avg_power_w: null,
+  avg_hr_bpm: null,
+  avg_cadence_rpm: null,
+  duration_min: null,
+  distance_mi: null,
+  distance_unit: 'mi',        // 'mi' | 'km'
+  tss: null,
+  intensity_factor: null,
+  rpe: null,
+  raw_paste: '',
+  photo_attached: false,
+};
+
+/**
+ * Regex-based extraction of cycling metrics from pasted free text
+ * (ROUVY or Strava summary). Each regex is order-independent and
+ * forgiving of whitespace, casing, and punctuation between key
+ * and value. Returns a flat object — same keys as currentLog.
+ *
+ * @param {string} text
+ */
+function parseSessionPaste(text) {
+  const t = (text || '').replace(/,/g, '');
+  const rx = (re) => { const m = t.match(re); return m ? m[1] : null; };
+  return {
+    avg_power_w:      +rx(/(?:avg(?:erage)?\s*)?power[:\s]+(\d{2,4})/i) || null,
+    avg_hr_bpm:       +rx(/(?:avg(?:erage)?\s*)?(?:hr|heart\s*rate)[:\s]+(\d{2,3})/i) || null,
+    avg_cadence_rpm:  +rx(/cadence[:\s]+(\d{2,3})/i) || null,
+    duration_min:     +rx(/duration[:\s]+(\d{1,4})\s*min/i)
+                   || +rx(/(\d{1,4})\s*min(?:utes)?/i) || null,
+    tss:              +rx(/TSS[:\s]+(\d{1,4})/i) || null,
+    intensity_factor: +rx(/IF[:\s]+(0?\.\d+)/i) || null,
+    distance_mi:      +rx(/(\d+(?:\.\d+)?)\s*mi(?:les)?/i) || null,
+    distance_km:      +rx(/(\d+(?:\.\d+)?)\s*km/i) || null,
+  };
+}
+
+/** Render the parsed-output chips below the textarea. */
+function renderParseChips(parsed) {
+  const host = $('#paste-chips');
+  const items = [
+    parsed.avg_power_w      != null ? ['Power',    parsed.avg_power_w + ' W'] : null,
+    parsed.avg_hr_bpm       != null ? ['HR',       parsed.avg_hr_bpm + ' bpm'] : null,
+    parsed.avg_cadence_rpm  != null ? ['Cadence',  parsed.avg_cadence_rpm + ' rpm'] : null,
+    parsed.duration_min     != null ? ['Duration', parsed.duration_min + ' min'] : null,
+    parsed.distance_mi      != null ? ['Distance', parsed.distance_mi + ' mi'] : null,
+    parsed.distance_km      != null ? ['Distance', parsed.distance_km + ' km'] : null,
+    parsed.tss              != null ? ['TSS',      parsed.tss] : null,
+    parsed.intensity_factor != null ? ['IF',       parsed.intensity_factor] : null,
+  ].filter(Boolean);
+  if (!items.length) {
+    host.innerHTML = '<div class="small" style="color:var(--text-dim);">No metrics detected in the pasted text.</div>';
+    return;
+  }
+  host.innerHTML = items.map(([k, v]) => `<span class="chip">${escapeHtml(k)}<strong>${escapeHtml(v)}</strong></span>`).join('');
+}
+
+/** Merge parsed values into currentLog, then refresh the Manual tab + VS Target. */
+function applyParsedToCurrent(parsed) {
+  if (parsed.avg_power_w     != null) currentLog.avg_power_w     = parsed.avg_power_w;
+  if (parsed.avg_hr_bpm      != null) currentLog.avg_hr_bpm      = parsed.avg_hr_bpm;
+  if (parsed.avg_cadence_rpm != null) currentLog.avg_cadence_rpm = parsed.avg_cadence_rpm;
+  if (parsed.duration_min    != null) currentLog.duration_min    = parsed.duration_min;
+  if (parsed.tss             != null) currentLog.tss             = parsed.tss;
+  if (parsed.intensity_factor!= null) currentLog.intensity_factor= parsed.intensity_factor;
+  if (parsed.distance_mi     != null) { currentLog.distance_mi = parsed.distance_mi; currentLog.distance_unit = 'mi'; }
+  else if (parsed.distance_km!= null) { currentLog.distance_mi = +(parsed.distance_km * 0.621371).toFixed(2); currentLog.distance_unit = 'mi'; }
+  syncManualFromCurrent();
+  renderVsTarget();
+}
+
+/** Push currentLog values back into the Manual tab's inputs (so paste/photo
+ *  results show up if the user switches to Manual). */
+function syncManualFromCurrent() {
+  $('#m-power').value = currentLog.avg_power_w     ?? '';
+  $('#m-hr').value    = currentLog.avg_hr_bpm      ?? '';
+  $('#m-cad').value   = currentLog.avg_cadence_rpm ?? '';
+  $('#m-dur').value   = currentLog.duration_min    ?? '';
+  $('#m-dist').value  = currentLog.distance_mi     ?? '';
+  $('#m-tss').value   = currentLog.tss             ?? '';
+  $('#m-if').value    = currentLog.intensity_factor?? '';
+  // RPE grid
+  $$('#rpe-grid .rpe-btn').forEach(b => b.classList.toggle('on', +b.dataset.rpe === currentLog.rpe));
+}
+
+/** Read the Manual tab inputs into currentLog. */
+function syncCurrentFromManual() {
+  const num = (sel) => { const v = $(sel).value.trim(); return v === '' ? null : +v; };
+  currentLog.avg_power_w     = num('#m-power');
+  currentLog.avg_hr_bpm      = num('#m-hr');
+  currentLog.avg_cadence_rpm = num('#m-cad');
+  currentLog.duration_min    = num('#m-dur');
+  currentLog.distance_mi     = num('#m-dist');
+  currentLog.tss             = num('#m-tss');
+  currentLog.intensity_factor= num('#m-if');
+}
+
+/** Switch the Data Source tab (photo / paste / manual). */
+function setLogTab(name) {
+  $$('#log-input-toggle .seg-btn').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  ['photo', 'paste', 'manual'].forEach(t => {
+    $('#log-tab-' + t).hidden = t !== name;
+  });
+  currentLog.source = name;
+}
+
+/** Switch the Session Type (prescribed / unplanned). */
+function setLogKind(kind) {
+  $$('#log-kind-toggle .seg-btn').forEach(b => b.classList.toggle('on', b.dataset.kind === kind));
+  currentLog.type = kind;
+  renderVsTarget();
+}
+
+/** Build the RPE 1-10 button grid once on boot. */
+function buildRpeGrid() {
+  const host = $('#rpe-grid');
+  host.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'rpe-btn';
+    b.textContent = i;
+    b.dataset.rpe = i;
+    b.addEventListener('click', () => {
+      currentLog.rpe = i;
+      $$('#rpe-grid .rpe-btn').forEach(x => x.classList.toggle('on', +x.dataset.rpe === i));
+    });
+    host.appendChild(b);
+  }
+}
+
+// ---- Photo tab — capture / pick / preview (no API in MVP) ----
+const photoState = { file: null, previewURL: null };
+function onPhotoChosen(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (photoState.previewURL) URL.revokeObjectURL(photoState.previewURL);
+  photoState.file = file;
+  photoState.previewURL = URL.createObjectURL(file);
+  currentLog.photo_attached = true;
+  $('#photo-preview-host').innerHTML = `
+    <div class="photo-preview">
+      <img src="${photoState.previewURL}" alt="Captured cycling data screen" />
+      <div class="photo-attached-line">✓ Photo attached (stored locally only)</div>
+    </div>
+  `;
+  e.target.value = ''; // re-selecting the same file should fire again
+}
+function clearPhoto() {
+  if (photoState.previewURL) URL.revokeObjectURL(photoState.previewURL);
+  photoState.file = null;
+  photoState.previewURL = null;
+  currentLog.photo_attached = false;
+  $('#photo-preview-host').innerHTML = '';
+}
+
+// ---- VS Target — compare currentLog actuals against today's plan ----
+
+/**
+ * Parse the low end of a "low-high" cadence string like "88-95" or "90+".
+ * Returns null if no leading number is found.
+ */
+function parseCadenceLow(s) {
+  const m = String(s || '').match(/(\d{2,3})/);
+  return m ? +m[1] : null;
+}
+function parsePowerPct(s) {
+  // Match "95-100% FTP" or "88-92% FTP" etc — return the LOW end as a fraction
+  const m = String(s || '').match(/(\d{2,3})\s*[-–]\s*\d{2,3}\s*%/);
+  if (m) return +m[1] / 100;
+  const m2 = String(s || '').match(/(\d{2,3})\s*%/);
+  return m2 ? +m2[1] / 100 : null;
+}
+
+/** Per-metric verdict: ✅ hit, ⚠ close, ❌ miss. */
+function verdict(hit, close) { return hit ? '✅' : close ? '⚠' : '❌'; }
+
+function renderVsTarget() {
+  const card = $('#vs-target-card');
+  const session = getTodayPlannedSession();
+  if (currentLog.type === 'unplanned' || !session) { card.hidden = true; return; }
+
+  const rows = [];
+
+  // Cadence
+  const targetCadLow = parseCadenceLow(session.target_cadence_rpm);
+  if (targetCadLow != null && currentLog.avg_cadence_rpm != null) {
+    const actual = currentLog.avg_cadence_rpm;
+    const hit   = actual >= targetCadLow;
+    const close = !hit && actual >= targetCadLow - 5;
+    rows.push({
+      k: 'Cadence',
+      v: `Target ${escapeHtml(session.target_cadence_rpm)} · Actual ${actual} <span class="ico">${verdict(hit, close)}</span>`,
+    });
+  }
+
+  // Duration
+  if (session.duration_min && currentLog.duration_min != null) {
+    const actual = currentLog.duration_min;
+    const target = session.duration_min;
+    const hit   = actual >= target * 0.9;
+    const close = !hit && actual >= target * 0.75;
+    rows.push({
+      k: 'Duration',
+      v: `Target ${target} min · Actual ${actual} min <span class="ico">${verdict(hit, close)}</span>`,
+    });
+  }
+
+  // Power vs %FTP target
+  const pct = parsePowerPct(session.target_intensity);
+  if (pct != null && currentLog.avg_power_w != null) {
+    const targetW = Math.round(ATHLETE.ftp_w * pct);
+    const actual = currentLog.avg_power_w;
+    const hit   = actual >= targetW * 0.95;
+    const close = !hit && actual >= targetW * 0.85;
+    rows.push({
+      k: 'Power',
+      v: `Target ~${targetW}W (${escapeHtml(session.target_intensity)}) · Actual ${actual}W <span class="ico">${verdict(hit, close)}</span>`,
+    });
+  } else if (session.target_intensity && currentLog.avg_power_w != null) {
+    rows.push({
+      k: 'Power',
+      v: `Target ${escapeHtml(session.target_intensity)} · Actual ${currentLog.avg_power_w}W`,
+    });
+  }
+
+  if (!rows.length) { card.hidden = true; return; }
+  card.hidden = false;
+  $('#vs-target-rows').innerHTML = rows.map(r =>
+    `<div class="vs-row"><span class="k">${escapeHtml(r.k)}</span><span class="v">${r.v}</span></div>`
+  ).join('');
+  // Reflect the prescribed session title onto the log record while we're here.
+  currentLog.prescribed_session = session.title || '';
+}
+
+// ---- Save + Copy for Claude ----
+
+function saveSession() {
+  // Make sure manual edits are read in if the user is on the Manual tab
+  syncCurrentFromManual();
+
+  if (currentLog.avg_power_w == null && currentLog.avg_hr_bpm == null
+      && currentLog.duration_min == null && !currentLog.photo_attached
+      && !currentLog.raw_paste) {
+    toast('Nothing to save yet — add at least one metric.');
+    return;
+  }
+
+  // targets_met map — only computed for prescribed sessions
+  const session = getTodayPlannedSession();
+  const targets_met = {};
+  if (currentLog.type === 'prescribed' && session) {
+    const tc = parseCadenceLow(session.target_cadence_rpm);
+    if (tc != null && currentLog.avg_cadence_rpm != null) {
+      targets_met.cadence = currentLog.avg_cadence_rpm >= tc;
+    }
+    if (session.duration_min && currentLog.duration_min != null) {
+      targets_met.duration = currentLog.duration_min >= session.duration_min * 0.9;
+    }
+    const pct = parsePowerPct(session.target_intensity);
+    if (pct != null && currentLog.avg_power_w != null) {
+      targets_met.power = currentLog.avg_power_w >= ATHLETE.ftp_w * pct * 0.95;
+    }
+  }
+
+  const record = {
+    date: currentLog.date,
+    type: currentLog.type,
+    source: currentLog.source,
+    prescribed_session: currentLog.prescribed_session,
+    avg_power_w: currentLog.avg_power_w,
+    avg_hr_bpm: currentLog.avg_hr_bpm,
+    avg_cadence_rpm: currentLog.avg_cadence_rpm,
+    duration_min: currentLog.duration_min,
+    distance_mi: currentLog.distance_mi,
+    tss: currentLog.tss,
+    intensity_factor: currentLog.intensity_factor,
+    rpe: currentLog.rpe,
+    raw_paste: currentLog.raw_paste,
+    photo_attached: currentLog.photo_attached,
+    targets_met,
+    saved_at: new Date().toISOString(),
+  };
+  const arr = load(K.sessions, []);
+  arr.push(record);
+  save(K.sessions, arr);
+  toast('Session saved');
+}
+
+/**
+ * Build the "Copy for Claude" markdown report from currentLog +
+ * today's check-in + today's prescribed session + race-day math.
+ * Per the MVP spec template exactly.
+ */
+function buildClaudeReport() {
+  syncCurrentFromManual();
+  const today = state.today;
+  const tulsa = ATHLETE.goals[0];
+  const daysToTulsa = daysBetween(today, tulsa.date);
+  const block = state.plan?.block;
+  const dayN = block ? Math.max(1, daysBetween(block.start_date, today) + 1) : '—';
+
+  const checkin = (load(K.checkins, []) || []).find(c => c.date === today);
+  const session = getTodayPlannedSession();
+
+  const ftpPct = currentLog.avg_power_w != null
+    ? Math.round(currentLog.avg_power_w / ATHLETE.ftp_w * 100) : null;
+
+  const lines = [];
+  lines.push('---');
+  lines.push(`CxMxC Training Report — ${today}`);
+  lines.push(`Day ${dayN} · ${daysToTulsa} days to ${tulsa.name}`);
+  lines.push('');
+
+  lines.push('MORNING CHECK-IN:');
+  if (checkin) {
+    lines.push(`Resting HR: ${checkin.resting_hr} BPM (baseline ${ATHLETE.rhr_baseline})`);
+    lines.push(`Sleep: ${checkin.sleep}/10 · Legs: ${checkin.legs}/10 · Mood: ${checkin.mood}/10 · Load: ${checkin.load}/10 · Soreness: ${checkin.soreness}/10`);
+    lines.push(`Readiness: ${checkin.readiness.toUpperCase()}`);
+  } else {
+    lines.push('No check-in submitted today.');
+  }
+  lines.push('');
+
+  lines.push('SESSION:');
+  lines.push(`Type: ${currentLog.type === 'prescribed' ? 'Prescribed' : 'Unplanned'}`);
+  if (session) lines.push(`Prescribed: ${session.title}`);
+  if (currentLog.type === 'unplanned' && currentLog.raw_paste) {
+    lines.push(`Actual: ${currentLog.raw_paste.slice(0, 120)}`);
+  }
+  lines.push('');
+
+  lines.push('PERFORMANCE:');
+  if (currentLog.avg_power_w != null) lines.push(`Avg Power: ${currentLog.avg_power_w}W (${ftpPct}% of FTP ${ATHLETE.ftp_w}W)`);
+  if (currentLog.avg_hr_bpm != null)  lines.push(`Avg HR: ${currentLog.avg_hr_bpm} BPM`);
+  if (currentLog.avg_cadence_rpm!=null)lines.push(`Avg Cadence: ${currentLog.avg_cadence_rpm} RPM`);
+  if (currentLog.duration_min != null)lines.push(`Duration: ${currentLog.duration_min} min`);
+  if (currentLog.distance_mi != null) lines.push(`Distance: ${currentLog.distance_mi} miles`);
+  if (currentLog.tss != null || currentLog.intensity_factor != null) {
+    lines.push(`TSS: ${currentLog.tss ?? '—'} · IF: ${currentLog.intensity_factor ?? '—'}`);
+  }
+  if (currentLog.rpe != null) lines.push(`RPE: ${currentLog.rpe}/10`);
+  lines.push('');
+
+  if (currentLog.type === 'prescribed' && session) {
+    lines.push('VS TARGETS:');
+    const tc = parseCadenceLow(session.target_cadence_rpm);
+    if (tc != null && currentLog.avg_cadence_rpm != null) {
+      const ok = currentLog.avg_cadence_rpm >= tc;
+      lines.push(`- Cadence ${session.target_cadence_rpm}: ${currentLog.avg_cadence_rpm} rpm ${ok ? 'HIT ✅' : 'MISS ❌'}`);
+    }
+    if (session.duration_min && currentLog.duration_min != null) {
+      const ok = currentLog.duration_min >= session.duration_min * 0.9;
+      lines.push(`- Duration ${session.duration_min}min: ${currentLog.duration_min}min ${ok ? 'HIT ✅' : 'MISS ❌'}`);
+    }
+    const pct = parsePowerPct(session.target_intensity);
+    if (pct != null && currentLog.avg_power_w != null) {
+      const t = Math.round(ATHLETE.ftp_w * pct);
+      const ok = currentLog.avg_power_w >= t * 0.95;
+      lines.push(`- Power ${session.target_intensity} (~${t}W): ${currentLog.avg_power_w}W ${ok ? 'HIT ✅' : 'MISS ❌'}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('GOAL PROGRESS:');
+  lines.push(`Tulsa W/kg: ${ATHLETE.wkg} → 2.8 target`);
+  lines.push(`Cadence: ${currentLog.avg_cadence_rpm ?? ATHLETE.cadence_baseline} → 90-95 target`);
+  lines.push(`Longest ride: ${currentLog.distance_mi ?? '—'}mi → 103mi target`);
+  lines.push('---');
+
+  return lines.join('\n');
+}
+
+async function copyForClaude() {
+  const md = buildClaudeReport();
+  try {
+    await navigator.clipboard.writeText(md);
+    toast('Copied! Paste into Claude.ai');
+  } catch {
+    // Fallback for non-secure contexts / older Android Chrome
+    const ta = document.createElement('textarea');
+    ta.value = md; ta.style.position = 'fixed'; ta.style.top = '-100px';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Copied! Paste into Claude.ai'); }
+    catch { toast('Copy failed — long-press in console output instead.'); }
+    document.body.removeChild(ta);
+  }
+}
+
+function wireLogScreen() {
+  // Session type toggle
+  $$('#log-kind-toggle .seg-btn').forEach(b =>
+    b.addEventListener('click', () => setLogKind(b.dataset.kind))
+  );
+  // Data source tabs
+  $$('#log-input-toggle .seg-btn').forEach(b =>
+    b.addEventListener('click', () => setLogTab(b.dataset.tab))
+  );
+
+  // Photo capture
+  $('#photo-take').addEventListener('click', () => $('#photo-camera').click());
+  $('#photo-pick').addEventListener('click', () => $('#photo-gallery').click());
+  $('#photo-camera').addEventListener('change',  onPhotoChosen);
+  $('#photo-gallery').addEventListener('change', onPhotoChosen);
+  $('#photo-to-manual').addEventListener('click', (e) => { e.preventDefault(); setLogTab('manual'); });
+
+  // Paste tab
+  $('#paste-text').addEventListener('input', (e) => { currentLog.raw_paste = e.target.value; });
+  $('#parse-btn').addEventListener('click', () => {
+    const text = $('#paste-text').value;
+    currentLog.raw_paste = text;
+    const parsed = parseSessionPaste(text);
+    renderParseChips(parsed);
+    applyParsedToCurrent(parsed);
+    toast('Metrics extracted');
+  });
+
+  // Manual tab — re-render VS Target whenever a manual field changes
+  ['m-power','m-hr','m-cad','m-dur','m-dist','m-tss','m-if'].forEach(id => {
+    $('#' + id).addEventListener('input', () => { syncCurrentFromManual(); renderVsTarget(); });
+  });
+
+  // Distance unit toggle
+  $$('#m-dist-unit button').forEach(b => b.addEventListener('click', () => {
+    currentLog.distance_unit = b.dataset.unit;
+    $$('#m-dist-unit button').forEach(x => x.classList.toggle('on', x === b));
+  }));
+
+  // RPE grid
+  buildRpeGrid();
+
+  // Save + Copy
+  $('#save-session').addEventListener('click', saveSession);
+  $('#copy-for-claude').addEventListener('click', copyForClaude);
+}
+
+// =============================================================
 // THEME + NAVIGATION
 // =============================================================
 function applyTheme(t) {
@@ -1011,8 +1659,12 @@ function wire() {
   // Belt-and-suspenders: tap the live readout to focus the input
   $('#hr-live').addEventListener('click', () => $('#in-rhr').focus());
 
-  // Submit
+  // Submit check-in
   $('#submit-checkin').addEventListener('click', submitCheckin);
+
+  // Log screen
+  wireLogScreen();
+  $('#log-date').textContent = fmtDate(state.today);
 }
 
 // =============================================================
