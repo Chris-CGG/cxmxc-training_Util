@@ -2,87 +2,82 @@
 
 > Single-athlete training PWA for **CxMxC** preparing for the **Tulsa Tough Ace Peloton Fondo on 2026-06-06** (103 mi). Calibrated to one athlete's documented history of burst-crash cycles and panic attacks under load — mental state is treated as physiology, not weakness.
 
-The app runs offline-first, installs as a PWA on Android, and reads three authoritative JSON files in `src/data/` as source of truth. Every athlete-specific value (FTP, zones, thresholds, race dates) is read at runtime; nothing is hardcoded in JS or HTML.
+**Status: v1.0-alpha · paused pending v2 Strava architecture and the Tulsa race itself.**
 
-This is **not** a generic training app. Every default, threshold, and copy choice is shaped to one person.
+Live: <https://chris-cgg.github.io/cxmxc-training_Util/>
 
----
-
-## What's inside
-
-- **Mood-gated daily Check-In.** Five sliders + resting HR feed a stability score (0-100, green/yellow/red bands). The score determines the *tone* of every other screen for the day.
-- **Burst-crash detection.** A 3+ day pattern detector watches for the documented stress-driven crash cycle and surfaces flags before the cliff arrives. Logic in `src/engine/stability.js`.
-- **20-day Tulsa Tough block.** Three phases (Power & Repeatability → Ace Peloton Simulation → Taper & Sharpen) rendered from `src/data/training-plan.json`, with curated ROUVY route suggestions per session type.
-- **Field Training (unplanned activity).** Flag a group ride or unscheduled outdoor session before it happens; the engine proposes a plan ripple (replace, downgrade, protection day, RHR check, buffer absorbed); the athlete approves or rejects. Nothing auto-applies.
-- **Strava + ROUVY paste parsers.** Drop activity text into a textarea, the parser pulls duration, distance, avg power, NP, avg HR, cadence, IF, TSS.
-- **Daily log.** Water grid (8 oz cells, 100 oz target), supplement add/check/remove, merged check-in + session history, 14-day stability trend bars with burst-crash watch.
-- **AI coach.** Anthropic Messages API, browser-direct, key on-device only. Every prompt includes today's mood-gate band and stability score (non-negotiable).
-- **Dark / light theme.** Real second theme, not a half-built afterthought. Bebas Neue for headers, DM Mono for data.
+The current build is a three-screen MVP (Today / Log / Goals). It runs as a PWA installable on Android Chrome. Sprint 1 wrapped on **2026-05-13**; Sprint 2 begins after Tulsa Tough.
 
 ---
 
-## Quickstart
+## What works
 
-The app is a single static `index.html` plus three JSON files and four ES modules. No build step.
+- **Today screen.** Morning check-in with resting-HR input (`type="text" inputmode="numeric"`) + five 1-10 sliders (Sleep, Legs, Mood, Carrying Weight, Soreness). Three-state readiness indicator (🟢 READY / 🟡 REDUCED / 🔴 PROTECT) computed from HR + slider averages with hard overrides for high soreness/load. Today's prescribed session reads from `src/data/training-plan.json`; ROUVY workout/route names are tap-to-copy. On yellow/red days an adapted session is shown (red → Protection Day, 45 min Z1).
+- **Log screen.** Three input methods — 📷 Photo / 📋 Paste / ✏️ Manual — feeding one in-memory record. Paste tab has a regex-based extractor for power / HR / cadence / duration / TSS / IF / distance from typical Strava and ROUVY summary text. Manual tab is 10-button RPE grid + numeric inputs + mi/km toggle. **Copy for Claude** generates the day's full report (check-in + session + VS-targets + goal progress) and writes it to the clipboard for paste into Claude.ai.
+- **Goals screen.** Pre-seeded with Tulsa Tough + EHOTS RGV. Per-metric progress bars (W/kg, cadence, longest ride) coloured by completion percent. Tap-to-expand history shows the last five logged values. "+ Add Goal" modal supports custom metric tracking; long-press a goal card to delete.
+- **PWA.** Installable on Android Chrome; offline cache via service worker; dark + light theme; deployed via GitHub Actions to GitHub Pages on every push to `main`.
 
-### Run locally
+## What doesn't work yet
 
-```bash
-git clone <repo-url> cxmxc-training
-cd cxmxc-training
-python3 -m http.server 8080
-# open http://localhost:8080
-```
+- **Photo extraction → Claude Vision** is not wired in this build. The Photo tab attaches a preview but does not call the Vision API. The v0.2.x engine module (`src/engine/vision.js`) is on disk but parked — Sprint 2 will re-wire it.
+- **Strava API integration.** Manual paste / manual entry only. Strava OAuth is **v2 priority 1**.
+- **Sustained-effort detection.** W/kg "best of" treats any session ≥ 45 min as eligible; it doesn't compute true 60-min sustained-power yet.
+- **Engine modules** (`src/engine/stability.js`, `adaptation.js`, `ai-coach.js`, `unplanned.js`, `vision.js`) are on disk but **not imported** by the MVP shell. They had Sprint-1 test coverage and a clean module surface — Sprint 2 wires them back into screens that actually need them.
+- **Cloud sync.** localStorage only. v2 candidate.
+- **AI coach direct call.** "Copy for Claude" is the bridge — the in-app `askCoach` path from v0.2.x is parked alongside the other engines.
+- **Unplanned-activity ripple flow.** Existed in v0.2.x; not in the v2.0 rebuild. Sprint 2 candidate.
 
-A static server is required — `file://` won't work because of the JSON `fetch` calls and the service worker registration.
+## What the v2 architecture should be
 
-### Install as PWA on Android
+- **Strava as the source of truth.** OAuth, activity webhook or polling, automatic ride pickup. A session record is derived from a Strava activity plus athlete-side annotations (RPE, fueling notes, subjective state). Paste and photo become fallbacks for activities Strava doesn't pick up, not primary inputs.
+- **Engine modules reintegrated.** Stability (with the burst-crash detector that's protected by CLAUDE.md rule 9), adaptation (mood-gated guidance), ai-coach (parameterized prompt), unplanned (TSS + ripple), vision (photo extraction). Pure modules with tests, wired into screens that genuinely consume them.
+- **Proper data architecture.** Strongly-typed session and check-in objects backed by Supabase mirror once a second device exists. The on-device-only privacy posture from the security audit continues for the athlete-private fields (identity + medical).
+- **Multi-athlete-ready** without rewriting. The single-tenant assumption stays for v1, but the data model and the engine prompt should not bake in one athlete's identity (already addressed for the AI coach in the v0.2.x security audit; the MVP shell currently re-bakes it for simplicity and will need to be un-baked in v2).
 
-1. Serve the directory on your LAN: `python3 -m http.server 8080 --bind 0.0.0.0`.
-2. Note your Mac's LAN IP: `ipconfig getifaddr en0` (or `hostname -I` on Linux).
-3. On the Android device (same WiFi), open Chrome and navigate to `http://<your-lan-ip>:8080`.
-4. Three-dot menu → **Install app**.
-
-### AI coach setup
-
-The coach is opt-in and per-device. Open **Profile → AI Coach**, paste your Anthropic API key. The key is stored only in this device's `localStorage` and is never sent to any non-Anthropic origin. Default model: `claude-sonnet-4-6`.
+A post-mortem capturing Sprint 1 lessons will land at [`docs/POST_MORTEM.md`](./docs/POST_MORTEM.md) before Sprint 2 starts.
 
 ---
 
 ## Project structure
 
 ```
-/index.html                     PWA shell (5 screens, inline CSS, ES module)
-/manifest.json                  PWA manifest, standalone display
-/service-worker.js              Offline cache: shell + data + engine modules
+/index.html                     MVP v2.0 shell — 3 screens, no engine imports
+/manifest.json                  PWA manifest (theme #0a0a0f, standalone)
+/service-worker.js              Cache cxmxc-v7, stale-while-revalidate
 /icon.svg                       Maskable app icon
-/.env.example                   Placeholder; real keys live in localStorage on-device
 
 /src/data/
-  athlete-profile.json          AUTHORITATIVE — Chris's profile, zones, thresholds, goals
-  training-plan.json            AUTHORITATIVE — 20-day Tulsa Tough block
-  rouvy-routes.json             Curated ROUVY library (25 routes + 23 workouts)
+  athlete-profile.json          AUTHORITATIVE (sanitized — see docs/SECURITY.md)
+  training-plan.json            AUTHORITATIVE — 20-day Tulsa block
+  rouvy-routes.json             Curated ROUVY library
+  athlete-private.example.json  Template for the gitignored private file
 
-/src/engine/
-  stability.js                  Stability score + burst-crash pattern detection
-  adaptation.js                 Mood-gated guidance + structured session adaptations
-  ai-coach.js                   Anthropic API browser-direct wrapper
-  unplanned.js                  TSS estimation + ripple computation + coaching note
+/src/engine/                    PARKED for Sprint 2 (not imported by v2.0 shell)
+  stability.js                  Stability score + burst-crash detection
+  adaptation.js                 Mood-gated guidance
+  ai-coach.js                   Anthropic browser-direct wrapper
+  unplanned.js                  Unplanned-activity TSS + ripple
+  vision.js                     Claude Vision extraction
 
-/src/components/                v2 destination for screen-component split (empty in v1)
-/src/styles/                    v2 destination for CSS extraction (empty in v1)
+/tests/engines.test.mjs         28 smoke tests against the parked engines
+                                (still passing — engines weren't touched)
 
 /docs/
-  DISCOVERY.md                  Phase 0 — problem, user, constraints, success metrics
-  TECH_DECISIONS.md             Phase 1 — stack choices, alternatives, when to revisit
-  architecture.md               Phase 1 — ERD, component graph, state flows (Mermaid)
-  PDLC/                         Reusable Product Development Lifecycle framework
+  DISCOVERY.md                  Phase 0 — problem, user, constraints
+  TECH_DECISIONS.md             Phase 1 — D1-D10 stack rationale
+  architecture.md               Phase 1 — Mermaid ERD + component graph
+  SECURITY.md                   Phase 4 — checklist + public/private split audit
+  ACCESSIBILITY.md              Phase 4 — WCAG audit + procedures
+  PERFORMANCE.md                Phase 5 — Lighthouse baseline procedure
+  SPRINT_1_CLOSE.md             Sprint 1 wrap (this milestone)
+  POST_MORTEM.md                forthcoming — pre-Sprint-2
+  PDLC/
     README.md                   Framework overview
-    PHASES.md                   The seven phases
-    GATES.md                    Per-phase checklists + Claude's automatic refusals
-    CLAUDE_PROTOCOL.md          How Claude behaves inside this framework
+    PHASES.md / GATES.md        Process spec
+    CLAUDE_PROTOCOL.md          How Claude operates inside the framework
     CXMXC_REFERENCE.md          Honest retrospective on this project
-    CHANGELOG.md                Keep-a-Changelog format, v0.1.0 onward
+    CHANGELOG.md                Full release ledger
+    ROADMAP.md                  v2 candidates, sunset triggers
     NEW_PROJECT_TEMPLATE.md     Copy-paste CLAUDE.md for new projects
 
 /CLAUDE.md                      Project contract — read this first
@@ -90,70 +85,44 @@ The coach is opt-in and per-device. Open **Profile → AI Coach**, paste your An
 
 ---
 
-## Authoritative files
+## Quickstart
 
-Two JSON files are the single source of truth for athlete-specific values:
+```bash
+git clone https://github.com/Chris-CGG/cxmxc-training_Util cxmxc-training
+cd cxmxc-training
+python3 -m http.server 8080
+# open http://localhost:8080
+```
 
-- `src/data/athlete-profile.json` — identity, baseline numbers, thresholds, zones, goals.
-- `src/data/training-plan.json` — the 20-day Tulsa Tough block.
+Static server is required (the JSON fetches and service-worker registration don't work over `file://`).
 
-Per `CLAUDE.md` rule 1, these files **must not be modified silently**. Changes require explicit human approval. Plan completion and unplanned-activity adjustments are stored as separate localStorage *overlays* and merged at render time so the JSON files stay pristine.
-
-`src/data/rouvy-routes.json` is a curated library and may be edited freely, but entries referenced from `training-plan.json` (`rouvy_workout`, `rouvy_route`) must remain present.
-
----
-
-## Documentation
-
-Read these in order if you're new to the project:
-
-1. **`CLAUDE.md`** — project brief, the athlete, language rules, 10 development rules. The contract.
-2. **`docs/DISCOVERY.md`** — problem statement, user profile, constraints, success metrics, assumptions, out-of-scope.
-3. **`docs/architecture.md`** — ERD, component graph, state flows. Mermaid diagrams render on GitHub.
-4. **`docs/TECH_DECISIONS.md`** — what stack was chosen, what was rejected, why, when to revisit.
-5. **`docs/PDLC/`** — the reusable framework this project is the reference implementation of.
-
-For the honest account of how each PDLC phase was actually executed (including the parts that were retroactive), see `docs/PDLC/CXMXC_REFERENCE.md`.
+Install as PWA on Android:
+1. Open <https://chris-cgg.github.io/cxmxc-training_Util/> in Chrome.
+2. Three-dot menu → **Install app**.
 
 ---
 
-## Compliance posture
+## Authoritative files + compliance
 
-The athlete profile is **personal-health-adjacent data**. The product:
+Two JSON files are read-only by default per CLAUDE.md rule 1:
+- `src/data/athlete-profile.json` (sanitized public version — identity / biometric / medical fields are `null`).
+- `src/data/training-plan.json` (20-day block).
 
-- Stores the profile in source as JSON because v1 is single-user single-device.
-- Never logs the profile to a remote service.
-- Never embeds profile data in URLs or query strings.
-- Sends a curated subset (not the full profile) to the Anthropic API for coach calls.
-- Stores the API key only in the device's `localStorage`. Never in source, never in `.env.example`.
+Real identity values live in a **gitignored** `src/data/athlete-private.json`; the v0.2.x shell merged them at boot. The MVP v2.0 shell hardcodes athlete identity inline (override of rule 5 for simplicity) — Sprint 2 will move that back to a merged-profile read.
 
-Org-level constraints applied: ISO 27001, NIST 800-171, HIPAA-adjacent, PCI, CMMC Level 2, NIST AI RMF.
-
-For the security checklist results, see `docs/SECURITY.md`.
+See [`docs/SECURITY.md`](./docs/SECURITY.md) for the full audit and the move list. Compliance posture: ISO 27001, NIST 800-171, HIPAA-adjacent, PCI, CMMC Level 2, NIST AI RMF.
 
 ---
 
 ## Contributing
 
-There is currently one user and one contributor. If that changes, the contract is `CLAUDE.md` and the framework is `docs/PDLC/`. Read both before opening a PR.
+Single-author project for v1. If that changes, the contract is `CLAUDE.md` and the framework is `docs/PDLC/`. Read both before opening a PR.
 
-The non-negotiables (from `CLAUDE.md`):
-
+Non-negotiables from `CLAUDE.md`:
 - Never overwrite `src/data/athlete-profile.json` or `src/data/training-plan.json` without explicit permission.
 - Use the project's mental-health language: *"nervous system load"*, not "anxiety". *"Carrying weight"*, not "stressed". *"Field training"* / *"protection day"*, not "disruption" / "rest".
 - ERG mode default is OFF unless a session explicitly says otherwise.
-- One feature per commit. Test in browser before commit.
-- Document as you build; data schemas update in the same commit as the change.
-
----
-
-## Status
-
-**v0.1.0** — MVP shipped to its single user. Installed as PWA on Android Chrome. Day 1 ride data captured. Currently in PDLC Phase 6 (iteration). The "Field Training" feature was the first iteration.
-
-Public deployment URL: pending (Phase 5 backfill). Until then, run locally per Quickstart.
-
-For what's next, see `docs/PDLC/CHANGELOG.md` and the open questions section of `docs/DISCOVERY.md`.
+- One feature per commit. Test in browser before commit. Document as you build.
 
 ---
 
@@ -163,4 +132,4 @@ For what's next, see `docs/PDLC/CHANGELOG.md` and the open questions section of 
 
 ---
 
-*Built with Claude Code. The Product Development Lifecycle framework in `docs/PDLC/` was extracted from this project as a reusable standard.*
+*Sprint 1 closed 2026-05-13. Sprint 2 begins after Tulsa Tough on 2026-06-06.*

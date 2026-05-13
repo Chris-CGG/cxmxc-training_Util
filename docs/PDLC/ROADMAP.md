@@ -1,107 +1,94 @@
 # Roadmap
 
-> Living document of work that's planned, in flight, or recently shipped. Items marked ✅ have shipped; ⏳ are in flight; 💭 are candidates not yet committed to. Sunset triggers and explicit out-of-scope items are documented at the bottom so they don't get re-relitigated.
-
-Pair this file with `CHANGELOG.md` (the audit ledger) and `CXMXC_REFERENCE.md` (the honest phase retrospective). Roadmap is forward-looking; the other two are backward-looking.
+> Living document. ✅ shipped, ⏳ in flight, 💭 candidates. Sunset triggers and explicit out-of-scope items at the bottom.
 
 ---
 
-## Recently shipped — v0.2.0
+## 🛑 PAUSED — Sprint 1 closed 2026-05-13
 
-- ✅ **Calendar tab** — full month-grid view between Plan and Log with day-detail bottom sheet, legend, progress bar, dual-goal countdowns. Reads `effectiveSession()` so unplanned-activity overlays show through.
-- ✅ **Photo capture with AI data extraction** — Photo / Paste / Manual 3-tab Data screen. `src/engine/vision.js` wraps the Anthropic Messages API (`claude-sonnet-4-6`) with a strict cycling-data extraction system prompt. Image compressed to 1200 px @ JPEG 0.85 before send. Extracted JSON renders as editable stat cards with confidence indicators; saves directly or hands off to Manual. Comprehensive failure handling routes every error to a "Use Manual Entry Instead" fallback.
-- ✅ **PDLC framework** in `/docs/PDLC/` — phases, gates, Claude protocol, cxmxc reference, changelog, new-project template, README. The framework was extracted from this project as a reusable standard.
-- ✅ **Phase 0/1/2/4/5 retroactive backfill** — DISCOVERY, TECH_DECISIONS, architecture (Mermaid ERD + component graph + state flows), README content, smoke tests (25/25 passing under `npm test`), SECURITY checklist, ACCESSIBILITY audit, PERFORMANCE baseline procedure, GitHub Pages deploy workflow, feedback link in Profile.
-- ✅ **UI debug pass** — Phase 1 text bleed fix (dedicated `.phase-card` layout) + motion polish on nine surfaces with `prefers-reduced-motion` opt-out.
+The product is **paused** pending two things:
 
-## Recently shipped — v0.1.0
+1. **The Tulsa Tough Ace Peloton Fondo on 2026-06-06** — the v1 goal event. Pausing feature work lets the athlete use the current build through the remaining 24-day window without disruption.
+2. **The v2 Strava-first architecture** — the right next chunk of work is a data-source rewrite, not more screens. See Sprint 2 candidates below.
 
-- ✅ MVP shipped to its single user. Installed as PWA on Android Chrome. See `CHANGELOG.md` for the full v0.1.0 entry.
+The app stays live at <https://chris-cgg.github.io/cxmxc-training_Util/> and is fully functional for the athlete during the pause. See [`docs/SPRINT_1_CLOSE.md`](../SPRINT_1_CLOSE.md) for the wrap.
 
 ---
 
-## In flight (currently nothing — Phase 6 steady state)
+## Currently shipped — v1.0-alpha
 
-⏳ *No work is currently in flight. Phase 6 of the PDLC is the steady state of a healthy product; iteration is event-driven (real-world need, real-device verification finding, user feedback).*
+Three screens: **Today / Log / Goals**. Tagged in `CHANGELOG.md` as `[2.0.0]` (technical release version); marketed as v1.0-alpha because the v2 architecture below is the real product target.
+
+- ✅ Today screen — morning check-in, 5 sliders, readiness indicator, today's prescribed session with ROUVY tap-to-copy.
+- ✅ Log screen — 3-input-method tabs (Photo / Paste / Manual), VS-Target comparison, **Copy for Claude** clipboard report.
+- ✅ Goals screen — pre-seeded Tulsa + EHOTS cards, progress bars, history strips, Add-Goal modal, long-press delete.
+- ✅ PWA installable on Android Chrome with offline cache.
+- ✅ Public/private athlete-profile split (security audit, pre-public-repo).
+- ✅ GitHub Pages deploy on every push to `main`.
 
 ---
 
-## v0.3.0 candidates
+## Historical releases
 
-### Real-device verification (closes Phase 4/5 properly)
+Full ledger in [`CHANGELOG.md`](./CHANGELOG.md):
 
-These are not features; they are pending verifications named in the v0.2.0 hardening docs that need to happen on the actual Android device.
+- **v0.1.0** — initial 5-screen shell + 4 engine modules + PDLC framework.
+- **v0.2.0** — Calendar tab, photo capture with Claude Vision, security audit + public/private split, retroactive Phase 0-5 backfill, UI debug pass.
+- **v0.2.1** — QA fixes (RHR input rewrite, mobile overflow audit, photo gallery upload).
+- **v2.0.0** — scope-locked 3-screen rebuild. Engines parked. Released as v1.0-alpha.
 
-- 💭 Run the **console-error sweep** (procedure in `docs/SECURITY.md`) — fill in the results table.
-- 💭 Run the **TalkBack / external-keyboard / color-vision / touch-target walks** (procedure in `docs/ACCESSIBILITY.md`) — fill in the results table.
-- 💭 Run the **Lighthouse Mobile baseline** on the deployed GitHub Pages build (procedure in `docs/PERFORMANCE.md`) — fill in the results table. Tag v0.2.1 if all targets pass.
+---
 
-### Accessibility v2 pass (high value, low cost)
+## Sprint 2 candidates — v2.0.0 (after Tulsa)
 
-The five gaps named in `docs/ACCESSIBILITY.md` — fixable in one focused commit, ~1-2 hours, no architectural change.
+### Priority 1 — Strava API integration ⭐
+- 💭 **Strava OAuth** flow with token refresh handling.
+- 💭 **Activity webhook or polling** so logged rides flow into the app automatically.
+- 💭 **Activity → session record mapping** — typed, derived, no flat localStorage blobs. This is the load-bearing piece of the v2 architecture.
+- 💭 Paste and photo become **fallbacks** for activities Strava doesn't pick up (Garmin-only, ROUVY-only, edge cases).
 
-- 💭 Form labels associated via `for` / `id` (every Check-In slider, RHR input, Data quick-entry field, Profile field, unplanned modal).
-- 💭 Modal focus trap + Escape-to-close on the unplanned and day-detail modals.
-- 💭 Modal opt-grid buttons sized to 44 × 44 minimum.
-- 💭 Slider `aria-describedby` for the value readout so TalkBack announces "Sleep Quality, 7 of 10".
-- 💭 Replace `title="Remove"` with `aria-label="Remove"` on the supplement delete button.
+### Priority 2 — Photo scan with Claude Vision
+- 💭 Re-wire the parked `src/engine/vision.js` module.
+- 💭 Bring back the editable-stat-cards UX from the v0.2.x build (auto-populate Manual fields from extracted JSON).
+- 💭 Secondary input path. Strava is primary; photo handles the screens Strava can't see.
 
-### Hardening / security tighten
-
-- 💭 CSP meta tag (proposed policy in `docs/SECURITY.md` — `'unsafe-inline'` for style-src tracked separately because v1 inlines all CSS).
-- 💭 Bump `app_version` in `src/data/athlete-profile.json` to match `CHANGELOG.md` (requires explicit `[OVERRIDE]` per CLAUDE.md rule 1).
-
-### Feature work — high signal
-
-- 💭 **Strava OAuth integration.** Replace the manual paste flow with a real activity feed. Requires Strava app registration + token refresh handling. v1 paste stays as fallback.
-- 💭 **Photo extraction → AI coach note.** After saving a photo-extracted session, automatically generate a coaching note via `askCoach()` using the extracted metrics + today's mood-gate band. Currently the coach is a separate manual call.
-- 💭 **Unplanned post-ride form integrated into Manual tab.** The `data-unplanned-host` form (RPE slider, fueling notes, link-to-flag dropdown) is currently legacy code, accessible only via the Check-In banner. Fold its functionality into the Manual tab so logging an unplanned ride is a one-tab workflow.
-- 💭 **Auto-link sessions to flagged unplanned records.** Whenever a session is saved with a date that matches a flagged unplanned record, prompt the user to link them — the existing `unplanned.actual` populating logic already exists.
-- 💭 **Sweet-spot interval breakdown view.** The plan describes interval structures in prose ("4×8 min @ 95-100% FTP"); a parsed visual breakdown (timeline blocks with target watts/cadence per interval) would make the prescribed session readable at a glance.
-- 💭 **Heat-acclimation block.** Tulsa June heat is a known stressor. Optional pre-block heat-tolerance work (Ventoux / Kona / Gran Canaria routes) tracked in its own block JSON.
-
-### Feature work — exploratory
-
-- 💭 **Multi-language support.** Spanish first — RGV community; relevant for the EHOTS goal.
-- 💭 **PDF export.** Currently JSON only. PDF is more shareable with a human coach.
-- 💭 **Live ride telemetry.** BLE / ANT+ ingestion for live HR, power, cadence during the ride. Significant scope; would change the offline-first model.
-- 💭 **iOS PWA polish.** iOS PWA support is weaker than Android (no `capture` attribute on file inputs, smaller storage budget, etc.). Pick this up only if iOS becomes a real target.
-
-### Infrastructure (v2 storage layer)
-
-- 💭 **Supabase mirror for cloud sync.** Triggered when the user gets a second device, or when a second user appears. Designed for from day one — the `cxmxc.*` localStorage namespace is already keyed for a `SELECT * WHERE key LIKE 'cxmxc.%'` mirror. See TECH_DECISIONS D2.
-- 💭 **Server-side AI coach proxy.** Currently browser-direct via `anthropic-dangerous-direct-browser-access`. A proxy would centralize the key, support rate-limiting, and enable budget caps. Triggered by a second user (the trust model breaks) or a budget cap requirement. See TECH_DECISIONS D3.
-- 💭 **TypeScript migration.** Currently plain JS with JSDoc. Triggered by a second contributor whose primary language is TS, or by a bug class that types would have prevented. See TECH_DECISIONS D8.
+### Priority 3+ (in rough order)
+- 💭 Reintegrate **stability** + **adaptation** engines into the Today screen with proper test coverage. Burst-crash detector (CLAUDE.md rule 9) comes back active.
+- 💭 **Unplanned-activity ripple flow** — the field-training / protection-day feature from v0.2.x, re-integrated into Today and Log.
+- 💭 **Calendar tab** reintroduced with the new Strava-backed data model.
+- 💭 **Sustained-effort detection** — true 60-min sustained-power computation for the W/kg goal, not the simple "any session ≥ 45 min" heuristic the MVP uses.
+- 💭 **AI coach direct call** back. Today's "Copy for Claude" stays as a manual escape hatch; in-app `askCoach` returns once Strava data feeds it real context.
+- 💭 **Supabase mirror** for cloud sync + multi-device.
+- 💭 **Accessibility v2 pass** — five gaps tracked in `docs/ACCESSIBILITY.md` (form-label associations, modal focus trap, opt-grid touch target sizing, slider aria-describedby, supplement-delete aria-label).
+- 💭 **CSP meta tag** — security tighten.
+- 💭 **Strava cleanups** — backfill historical rides, handle rate limits, link sessions to Strava activity IDs for round-tripping.
 
 ---
 
 ## Won't do — out of scope
 
-These are deliberately excluded. Listed so future contributors don't accidentally re-litigate them.
-
-- ❌ **Multi-user / social features.** No comments, follows, leaderboards, shared rides. Single-tenant by design.
-- ❌ **Generic workout library.** Every default and threshold is calibrated to one athlete; "make it work for everyone" is the wrong direction.
-- ❌ **Native app distribution.** PWA is the chosen path. Capacitor wrap may be revisited if iOS support becomes a hard requirement.
-- ❌ **Real-time ride telemetry in the trainer-room.** Out of scope unless we move off the offline-first PWA model.
-- ❌ **Coach ↔ athlete chat / messaging.** The AI coach is the only coach in v1.
+- ❌ Multi-user / social features (single-tenant by design).
+- ❌ Generic workout library (every default is calibrated to one athlete).
+- ❌ Native app distribution (PWA is the chosen path).
+- ❌ Real-time ride telemetry in the trainer-room.
+- ❌ Coach ↔ athlete chat / messaging (the AI coach is the only coach).
 
 ---
 
 ## Sunset triggers
 
-When to retire components rather than extend them.
-
-- **v1 PWA** sunset trigger: iOS support becomes a real requirement → evaluate Capacitor wrap.
-- **localStorage v1** sunset trigger: second device or second user → migrate to Supabase mirror (the keyed namespace is designed for this).
-- **Browser-direct Anthropic call** sunset trigger: budget cap requirement or second user → introduce a server-side proxy.
-- **Manual paste parser** sunset trigger: paste fatigue across the 20-day block, or Strava parser breakage from a Strava format change → ship Strava OAuth.
+- **v1 PWA** sunset → iOS becomes a real requirement → evaluate Capacitor wrap.
+- **localStorage v1** sunset → second device or second user → Supabase mirror.
+- **Browser-direct Anthropic** sunset → budget cap or second user → server-side proxy.
+- **Manual paste / photo** sunset → Strava OAuth ships in Sprint 2 (primary input).
+- **MVP v2.0 shell** sunset → engine modules re-imported in Sprint 2 → v2.0.0 architecture replaces the hardcoded-athlete-identity shortcut.
 
 ---
 
 ## How items move through the roadmap
 
-1. A 💭 candidate gets discussed and either committed to (becomes ⏳) or moved to the "Won't do" list.
-2. ⏳ items live here only while they're in flight. Each shipping commit moves the item to ✅ in the "Recently shipped" section and adds it to `CHANGELOG.md`.
-3. ✅ items stay here for one or two release cycles, then graduate fully to `CHANGELOG.md` to keep this file scannable.
+1. 💭 candidate → ⏳ in flight (with commit/PR) → ✅ shipped (with CHANGELOG entry).
+2. ✅ items stay in "currently shipped" for one release cycle, then graduate fully to `CHANGELOG.md`.
+3. Anything that doesn't fit Sprint 2 priorities by the time Sprint 2 starts moves to "deferred" or "won't do" — no orphan candidates.
 
-The point of this file is to be reviewable in five minutes. If it grows past two screens, prune.
+The point of this file: scannable in under five minutes. Prune as needed.
